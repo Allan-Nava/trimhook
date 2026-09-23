@@ -1,0 +1,10 @@
+{
+  "name": "trimhook",
+  "version": "0.0.1",
+  "description": "Tool output trimmed at the source: a PostToolUse hook that keeps the head and tail of a long shell result, spills the whole of it to a file the model can read, and reports what it saved.",
+  "author": { "name": "Allan Nava", "url": "https://github.com/Allan-Nava" },
+  "homepage": "https://github.com/Allan-Nava/trimhook",
+  "repository": "https://github.com/Allan-Nava/trimhook",
+  "license": "MIT",
+  "hooks": "codex/hooks.json"
+}

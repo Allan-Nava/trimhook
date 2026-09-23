@@ -1,0 +1,39 @@
+{
+  "name": "trimhook",
+  "version": "0.0.1",
+  "description": "Tool output trimmed at the source: a PostToolUse hook for Claude Code and Codex CLI that keeps the head and tail of a long shell result, spills the whole of it to a file the model can read, and reports what it saved.",
+  "type": "module",
+  "bin": {
+    "trimhook": "bin/trimhook.mjs"
+  },
+  "files": [
+    "bin",
+    "hooks",
+    "codex",
+    ".claude-plugin",
+    ".codex-plugin",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node bin/trimhook.mjs check && node --test",
+    "backlog": "node scripts/backlog.mjs lint && node scripts/backlog.mjs check",
+    "build:site": "node site/build.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Allan-Nava/trimhook"
+  },
+  "homepage": "https://allan-nava.github.io/trimhook/",
+  "bugs": "https://github.com/Allan-Nava/trimhook/issues",
+  "keywords": ["claude-code", "codex", "hooks", "plugin", "token-efficiency", "context-engineering", "tool-output", "truncation"],
+  "author": "Allan Nava (https://github.com/Allan-Nava)",
+  "license": "MIT",
+  "devDependencies": {
+    "marked": "^17.0.0"
+  }
+}

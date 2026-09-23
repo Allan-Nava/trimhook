@@ -1,0 +1,13 @@
+{
+  "description": "trimhook — a long shell result is trimmed to its head and tail before the model reads it; the whole output is spilled to a file the model can open. Falls through on anything it cannot handle.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/trimhook.mjs", "args": ["post-tool-use"], "timeout": 5, "statusMessage": "trimhook: trimming the result" }
+        ]
+      }
+    ]
+  }
+}

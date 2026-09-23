@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>trimhook</title>
+  <rect width="64" height="64" rx="14" fill="#2f7d5a"/>
+  <!-- a result: four lines; the two middle ones cut short, the head and the tail kept whole -->
+  <rect x="14" y="16" width="36" height="6" rx="3" fill="#fff"/>
+  <rect x="14" y="27" width="16" height="6" rx="3" fill="#fff" opacity=".55"/>
+  <rect x="14" y="38" width="16" height="6" rx="3" fill="#fff" opacity=".55"/>
+  <rect x="14" y="49" width="36" height="6" rx="3" fill="#fff"/>
+  <!-- the cut -->
+  <path d="M38 24 L48 46" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+</svg>

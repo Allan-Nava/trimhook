@@ -1,0 +1,13 @@
+{
+  "description": "trimhook for Codex CLI — the same handler, Codex's single-command form. Codex 0.155 dropped plugin-bundled hooks: `trimhook print-hooks` writes this file with absolute paths for a repository's .codex/hooks.json.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "node \"${PLUGIN_ROOT}/bin/trimhook.mjs\" post-tool-use", "timeout": 5 }
+        ]
+      }
+    ]
+  }
+}
