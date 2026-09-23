@@ -71,8 +71,10 @@ count of spill files the model actually went back to read.
   the count of `Read` calls on spill files from the transcripts; both numbers into the
   README beside the transcript table, and the default cap decided from them.
   **Gates the release.** <!-- th: prio=high size=M labels=benchmark -->
-- [ ] **TH-11 — First release 0.1.0**: bootstrap publish by hand, trusted publisher, tag
-  — after TH-10. <!-- th: prio=med size=S labels=release -->
+- [x] **TH-11 — First release 0.1.0**: bootstrap publish by hand, trusted publisher, tag
+  — after TH-10. Published 2026-09-23 ahead of TH-10, deliberately: the README states
+  that the numbers are transcript-only and the default cap reasoned rather than
+  measured. <!-- th: prio=med size=S labels=release ver=0.1.0 -->
 
 ## v0.2.0 — Beyond Bash <!-- ms: phase=next -->
 
@@ -98,21 +100,32 @@ run length and equality, no model, no guess about meaning.
 before TH-15 says what it is worth on the transcripts; an idea that saves under a couple
 of per cent is dropped rather than shipped.
 
-- [ ] **TH-15 — What the repetition is worth**: `evals/local.mjs` extended with two
+TH-15 answered on 2026-09-23, and the rule was applied: line runs 3.8%, so TH-16 is
+built; repeated results 0.4%, so TH-17 and TH-18 are dropped. One item of four survives,
+which is what a gate is for.
+
+- [x] **TH-15 — What the repetition is worth**: `evals/local.mjs` extended with two
   counters over the same corpus — characters inside runs of near-identical lines, and
-  characters in results byte-identical to an earlier result in the same session. Sizes
-  only, as TH-6. The numbers decide whether TH-16 and TH-17 ship at all, and go in the
-  README dated. <!-- th: prio=high size=M labels=benchmark -->
+  characters in results byte-identical to an earlier result in the same session. Both
+  marginal: counted inside the head and tail the cut keeps, not over the whole output.
+  2026-09-23, 28,545 results: line runs 1,011,413 characters, **3.8%** of what the model
+  reads; repeated results 100,217, **0.4%**. In the README, dated.
+  <!-- th: prio=high size=M labels=benchmark ver=main -->
 - [ ] **TH-16 — Collapse the runs**: a run of lines identical once digits, paths and
   byte counts are masked becomes one line and a count, inside the head and the tail
   alike, so the budget buys distinct content. Reversible by the spill, which keeps the
   output whole as always; a measured false-positive rate on the transcripts before it is
-  on by default. <!-- th: prio=med size=M labels=hook,enhancement -->
-- [ ] **TH-17 — The same result twice**: a result whose hash matches one already seen in
-  the session is replaced by a marker naming the earlier `tool_use_id` and its spill,
-  rather than a second copy of the text. Needs a session-scoped index in the store, and
-  an answer to what the model should do when it genuinely wants to know the output has
-  not changed. <!-- th: prio=med size=L labels=hook -->
-- [ ] **TH-18 — One spill per content**: identical outputs share one file, named by
-  hash; the TTL prune counts references, not files. Follows TH-17 and only pays off with
-  it. <!-- th: prio=low size=S labels=hook -->
+  on by default. **Earned its place at 3.8%** (TH-15), so it is the one item of this
+  milestone that gets built. <!-- th: prio=med size=M labels=hook,enhancement -->
+- [x] **TH-17 — The same result twice**: a result whose hash matches one already seen in
+  the session would be replaced by a marker naming the earlier `tool_use_id` and its
+  spill. **Dropped on the measurement** (TH-15, 2026-09-23): 1,052 repeated results in
+  28,545, worth 100,217 characters — 0.4% of what the model reads, against a bar of 2%.
+  Only 93 of them are still over 200 characters once cut, which is about what the marker
+  replacing them would cost. A session-scoped index and an answer to "has this really not
+  changed?" is a lot of machinery for that. Re-open if a corpus says otherwise.
+  <!-- th: prio=med size=L labels=hook ver=dropped -->
+- [x] **TH-18 — One spill per content**: identical outputs share one file, named by
+  hash; the TTL prune counts references, not files. **Dropped with TH-17**, which it
+  depended on: 100,217 characters of repeated results across the whole corpus is not a
+  disk problem. <!-- th: prio=low size=S labels=hook ver=dropped -->
