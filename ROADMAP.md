@@ -4,15 +4,15 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**18 items · 7 shipped · 11 open · 3 milestones.**
+**18 items · 11 shipped · 7 open · 3 milestones.**
 
 ## At a glance
 
 | Milestone | Phase | Progress | Open | Shipped |
 |---|---|---|---|---|
-| **v0.1.0 — One cut, one number** | now | `######....` 64% | 4 | 7 |
+| **v0.1.0 — One cut, one number** | now | `#######...` 73% | 3 | 8 |
 | **v0.2.0 — Beyond Bash** | next | `..........` 0% | 3 | 0 |
-| **v0.3.0 — Less of the same** | later | `..........` 0% | 4 | 0 |
+| **v0.3.0 — Less of the same** | later | `########..` 75% | 1 | 3 |
 
 ## v0.1.0 — One cut, one number
 
@@ -26,7 +26,7 @@
 - [x] **TH-8** — Backlog as the single source of truth · low · S · project · `main`
 - [ ] **TH-9** — Verify the Codex replacement live · high · S · hook, tests
 - [ ] **TH-10** — Live measurement, one week · high · M · benchmark
-- [ ] **TH-11** — First release 0.1.0 · med · S · release
+- [x] **TH-11** — First release 0.1.0 · med · S · release · `0.1.0`
 
 ## v0.2.0 — Beyond Bash
 
@@ -36,7 +36,7 @@
 
 ## v0.3.0 — Less of the same
 
-- [ ] **TH-15** — What the repetition is worth · high · M · benchmark
+- [x] **TH-15** — What the repetition is worth · high · M · benchmark · `main`
 - [ ] **TH-16** — Collapse the runs · med · M · hook, enhancement
-- [ ] **TH-17** — The same result twice · med · L · hook
-- [ ] **TH-18** — One spill per content · low · S · hook
+- [x] **TH-17** — The same result twice · med · L · hook · `dropped`
+- [x] **TH-18** — One spill per content · low · S · hook · `dropped`

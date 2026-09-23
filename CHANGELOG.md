@@ -5,6 +5,18 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 
 ## [Unreleased]
 
+### Added
+- `evals/local.mjs` measures repetition as well as size: characters inside runs of
+  near-identical lines, and results byte-identical to an earlier result in the same
+  session. Both counted inside the head and tail the cut keeps, so the number is the
+  marginal one. The text is read, measured and dropped in-process — the report and
+  `evals/results/` hold counts only (TH-15).
+
+### Changed
+- README: the transcript table re-measured on 28,545 results, and a new section with the
+  repetition numbers, dated. TH-16 earned its place at 3.8%; TH-17 and TH-18 are dropped
+  at 0.4%, by the rule the milestone set before the measurement (TH-15, TH-17, TH-18).
+
 ## [0.1.0] — 2026-09-23
 
 First published version. The hook is the one measured on transcripts; the live week

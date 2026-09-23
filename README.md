@@ -107,24 +107,46 @@ reported by `doctor` and the default takes its place.
 
 ## What the transcripts say
 
-From 131 local Claude Code sessions and 4 Codex sessions, sizes only, nothing sent
-anywhere (`node evals/local.mjs`, 2026-09-23). The transcripts hold what the harness
-gave the model, after its own flat cut, so this is what trimhook adds on top:
+From 142 local Claude Code sessions and 8 Codex sessions — 28,545 tool results,
+28.5 M characters — measured on this machine and sent nowhere (`node evals/local.mjs`,
+2026-09-23). The transcripts hold what the harness gave the model, after its own flat
+cut, so this is what trimhook adds on top:
 
 | Cap | Results trimmed | Characters saved | Share of all result characters |
 |---:|---:|---:|---:|
-| 4,000 | 759 of 28,219 | 4,314,977 (≈ 1.08 M tokens) | 16% |
-| **8,000** (default) | 268 | 1,767,148 (≈ 442 k tokens) | 6% |
-| 12,000 | 122 | 834,531 | 3% |
-| 16,000 | 58 | 391,238 | 1% |
+| 4,000 | 802 of 28,545 | 4,651,331 (≈ 1.16 M tokens) | 16% |
+| **8,000** (default) | 288 | 1,951,109 (≈ 488 k tokens) | 7% |
+| 12,000 | 133 | 951,634 | 3% |
+| 16,000 | 66 | 465,656 | 2% |
 
-One result in a hundred is over 8,000 characters, and those hold 17% of every character
-the model read from a shell. Trimming them to 8,000 recovers 6%; halving the cap recovers
+One result in a hundred is over 8,000 characters, and those hold 18% of every character
+the model read from a shell. Trimming them to 8,000 recovers 7%; halving the cap recovers
 16%, at the price of hiding more middles. `cat`, `sed`, `echo` and `for` loops lead the
 list of what gets cut — whole-file reads and hand-rolled loops, not test runs. The right
 default cap is the open question the design phase carries (`thoughts/`), and the live
-measurement before 0.1.0 is what settles it: `trimhook report` on a week of real work,
-plus a count of how often the model went and read a spill file.
+measurement (TH-10) is what settles it: `trimhook report` on a week of real work, plus a
+count of how often the model went and read a spill file.
+
+### The same thing twice
+
+The cut above spends the budget on repetition at the same rate as on content, so the
+same run counts what that repetition is worth (2026-09-23, at the default cap):
+
+| | Characters | Share of what the model reads |
+|---|---:|---:|
+| Runs of near-identical lines, inside the kept head and tail | 1,011,413 | 3.8% |
+| Results byte-identical to an earlier one in the same session | 100,217 | 0.4% |
+
+A line counts as the same again when it differs only in its numbers, its hex blobs, its
+spacing and its colour codes; `\r` ends a line as `\n` does, which is how a redrawn
+progress bar is counted at all. Blank runs are counted apart (769 characters in the whole
+corpus) rather than folded in, so the headline is not flattered by whitespace.
+
+Both numbers are marginal: they count what survives the head-and-tail cut, not what it
+already removes. At 3.8% the line runs are worth collapsing (TH-16). At 0.4% the repeated
+results are not — 1,052 of them, but only 93 still over 200 characters once cut, which is
+about what the marker replacing them would cost — so TH-17 and TH-18 are dropped rather
+than built, on this corpus, by the rule the milestone set before the measurement.
 
 ## Design notes
 
