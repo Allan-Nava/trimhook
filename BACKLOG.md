@@ -85,3 +85,34 @@ count of spill files the model actually went back to read.
   is unambiguous. Only with a measured false-positive rate. <!-- th: prio=low size=L labels=hook,enhancement -->
 - [ ] **TH-14 — Social preview and brand assets**: the OG card rendered from an HTML
   source with headless Chrome, as qrspi and hookgate do. <!-- th: prio=low size=S labels=docs -->
+
+## v0.3.0 — Less of the same <!-- ms: phase=later -->
+
+The cut so far is head and tail of one result, and it treats every line as worth the same.
+Most long output is not long because it says many things: it is long because it says one
+thing many times — a progress line redrawn four hundred times, the same `git status`
+printed in eight turns. This milestone goes after the repetition, and stays arithmetic:
+run length and equality, no model, no guess about meaning.
+
+**The measurement comes first, as it did for the cut itself.** No item here is built
+before TH-15 says what it is worth on the transcripts; an idea that saves under a couple
+of per cent is dropped rather than shipped.
+
+- [ ] **TH-15 — What the repetition is worth**: `evals/local.mjs` extended with two
+  counters over the same corpus — characters inside runs of near-identical lines, and
+  characters in results byte-identical to an earlier result in the same session. Sizes
+  only, as TH-6. The numbers decide whether TH-16 and TH-17 ship at all, and go in the
+  README dated. <!-- th: prio=high size=M labels=benchmark -->
+- [ ] **TH-16 — Collapse the runs**: a run of lines identical once digits, paths and
+  byte counts are masked becomes one line and a count, inside the head and the tail
+  alike, so the budget buys distinct content. Reversible by the spill, which keeps the
+  output whole as always; a measured false-positive rate on the transcripts before it is
+  on by default. <!-- th: prio=med size=M labels=hook,enhancement -->
+- [ ] **TH-17 — The same result twice**: a result whose hash matches one already seen in
+  the session is replaced by a marker naming the earlier `tool_use_id` and its spill,
+  rather than a second copy of the text. Needs a session-scoped index in the store, and
+  an answer to what the model should do when it genuinely wants to know the output has
+  not changed. <!-- th: prio=med size=L labels=hook -->
+- [ ] **TH-18 — One spill per content**: identical outputs share one file, named by
+  hash; the TTL prune counts references, not files. Follows TH-17 and only pays off with
+  it. <!-- th: prio=low size=S labels=hook -->
