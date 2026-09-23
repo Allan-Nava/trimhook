@@ -1,8 +1,8 @@
 {
-  "at": "2026-09-23T14:12:54.390Z",
+  "at": "2026-09-23T14:42:48.983Z",
   "claude": {
     "sessions": 142,
-    "results": 28536
+    "results": 28626
   },
   "codex": {
     "sessions": 8,
@@ -11,12 +11,12 @@
   "table": [
     {
       "cap": 4000,
-      "results": 28551,
-      "trimmed": 802,
-      "before": 28551833,
-      "after": 23900502,
-      "saved": 4651331,
-      "savedShare": 0.16290831485320048,
+      "results": 28641,
+      "trimmed": 806,
+      "before": 28653544,
+      "after": 23978838,
+      "saved": 4674706,
+      "savedShare": 0.16314582238064512,
       "top": [
         [
           "cat",
@@ -28,7 +28,7 @@
         ],
         [
           "echo",
-          544534
+          549489
         ],
         [
           "for",
@@ -40,7 +40,7 @@
         ],
         [
           "python3",
-          229637
+          243403
         ],
         [
           "\\",
@@ -54,12 +54,12 @@
     },
     {
       "cap": 8000,
-      "results": 28551,
-      "trimmed": 288,
-      "before": 28551833,
-      "after": 26600724,
-      "saved": 1951109,
-      "savedShare": 0.06833568268629198,
+      "results": 28641,
+      "trimmed": 289,
+      "before": 28653544,
+      "after": 26692668,
+      "saved": 1960876,
+      "savedShare": 0.0684339780098406,
       "top": [
         [
           "cat",
@@ -83,7 +83,7 @@
         ],
         [
           "python3",
-          100148
+          109915
         ],
         [
           "grep",
@@ -97,12 +97,12 @@
     },
     {
       "cap": 12000,
-      "results": 28551,
-      "trimmed": 133,
-      "before": 28551833,
-      "after": 27600199,
-      "saved": 951634,
-      "savedShare": 0.03333004924762624,
+      "results": 28641,
+      "trimmed": 134,
+      "before": 28653544,
+      "after": 27696143,
+      "saved": 957401,
+      "savedShare": 0.03341300468800648,
       "top": [
         [
           "cat",
@@ -133,19 +133,19 @@
           40419
         ],
         [
-          "grep",
-          35978
+          "python3",
+          39666
         ]
       ]
     },
     {
       "cap": 16000,
-      "results": 28551,
-      "trimmed": 66,
-      "before": 28551833,
-      "after": 28086177,
-      "saved": 465656,
-      "savedShare": 0.016309145545926947,
+      "results": 28641,
+      "trimmed": 67,
+      "before": 28653544,
+      "after": 28186121,
+      "saved": 467423,
+      "savedShare": 0.016312921012493254,
       "top": [
         [
           "cat",
@@ -173,7 +173,7 @@
         ],
         [
           "python3",
-          21900
+          23667
         ],
         [
           "wc",
@@ -184,17 +184,19 @@
   ],
   "repetition": {
     "cap": 8000,
-    "chars": 28551833,
-    "kept": 26564681,
-    "repeated": 1074740,
-    "blank": 769,
-    "runs": 8178,
-    "keptRepeated": 1011413,
-    "keptBlank": 757,
+    "chars": 28653544,
+    "kept": 26656504,
+    "keptStrict": 26613357,
+    "keptMasked": 25964330,
+    "repeated": 1077042,
+    "blank": 770,
+    "runs": 8196,
+    "keptRepeated": 1013417,
+    "keptBlank": 758,
     "duplicates": {
-      "count": 1052,
-      "chars": 100217,
-      "kept": 100217,
+      "count": 1056,
+      "chars": 100346,
+      "kept": 100346,
       "worth": 93,
       "worthKept": 78185
     }

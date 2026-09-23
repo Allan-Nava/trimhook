@@ -16,6 +16,21 @@ export const DEFAULTS = Object.freeze({
   spill: true, // write the whole output to a file the model can read
   spillTtlDays: 7, // spill files older than this are pruned
   codex: { replace: false }, // Codex's result replacement is documented but not yet verified live: opt in
+  // TH-16: a run of identical lines is collapsed to its first line and a count, before
+  // the cut, so the budget buys distinct content.
+  //
+  // On by default, and strict by default, which is the conservative pair: strict
+  // compares lines byte for byte, so the copies it drops said exactly what the line it
+  // keeps says. It is worth 0.2% of what the model reads (2026-09-23) — small, but it
+  // cannot cost anything either.
+  //
+  // `strict: false` compares lines with digits, hex and colour codes masked. That is
+  // worth 2.6%, ten times as much, because it catches the redrawn progress bar whose
+  // whole point is that the numbers move — but it also folds a run of lines that differ
+  // only in their numbers, and `test 3 failed` in the middle of `test N passed` is then
+  // only in the spill. It stays opt-in until that false-positive rate is measured
+  // rather than guessed (TH-19).
+  collapse: { enabled: true, minRun: 3, strict: true },
 })
 
 const merge = (a, b) => {
@@ -56,6 +71,9 @@ const RULES = {
   spill: (v) => typeof v === 'boolean' || 'true|false',
   spillTtlDays: (v) => (num(v) && v >= 0) || 'a number of days ≥ 0',
   'codex.replace': (v) => typeof v === 'boolean' || 'true|false',
+  'collapse.enabled': (v) => typeof v === 'boolean' || 'true|false',
+  'collapse.minRun': (v) => (Number.isInteger(v) && v >= 2) || 'an integer ≥ 2',
+  'collapse.strict': (v) => typeof v === 'boolean' || 'true|false',
 }
 const get = (o, path) => path.split('.').reduce((a, k) => (a && typeof a === 'object' ? a[k] : undefined), o)
 const set = (o, path, v) => {

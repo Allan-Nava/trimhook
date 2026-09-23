@@ -6,6 +6,12 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Added
+- Runs of identical lines are collapsed to their first line and a count before the cut,
+  so the budget buys distinct content: `bin/lib/collapse.mjs`, pure and unit-tested, with
+  `collapse: { enabled, minRun, strict }` in the config. On and strict by default — only
+  byte-identical lines, which cannot lose information, worth 0.2% of what the model
+  reads. The masked comparison is worth 2.6% and is opt-in pending TH-19. A collapsed run
+  is recoverable from the spill like any elided middle (TH-16).
 - `evals/local.mjs` measures repetition as well as size: characters inside runs of
   near-identical lines, and results byte-identical to an earlier result in the same
   session. Both counted inside the head and tail the cut keeps, so the number is the

@@ -104,6 +104,10 @@ TH-15 answered on 2026-09-23, and the rule was applied: line runs 3.8%, so TH-16
 built; repeated results 0.4%, so TH-17 and TH-18 are dropped. One item of four survives,
 which is what a gate is for.
 
+TH-16 then split the 3.8% in an awkward place: what the shipped pipeline actually saves
+is 0.2% when lines must match byte for byte, and 2.6% when their numbers are masked. The
+conservative half ships on; the valuable half waits for TH-19.
+
 - [x] **TH-15 — What the repetition is worth**: `evals/local.mjs` extended with two
   counters over the same corpus — characters inside runs of near-identical lines, and
   characters in results byte-identical to an earlier result in the same session. Both
@@ -111,12 +115,18 @@ which is what a gate is for.
   2026-09-23, 28,545 results: line runs 1,011,413 characters, **3.8%** of what the model
   reads; repeated results 100,217, **0.4%**. In the README, dated.
   <!-- th: prio=high size=M labels=benchmark ver=main -->
-- [ ] **TH-16 — Collapse the runs**: a run of lines identical once digits, paths and
-  byte counts are masked becomes one line and a count, inside the head and the tail
-  alike, so the budget buys distinct content. Reversible by the spill, which keeps the
-  output whole as always; a measured false-positive rate on the transcripts before it is
-  on by default. **Earned its place at 3.8%** (TH-15), so it is the one item of this
-  milestone that gets built. <!-- th: prio=med size=M labels=hook,enhancement -->
+- [x] **TH-16 — Collapse the runs**: a run of identical lines becomes its first line and
+  a count, before the cut, so the budget buys distinct content; the spill keeps the
+  output whole, so nothing it drops is unrecoverable. `bin/lib/collapse.mjs`, pure and
+  unit-tested; `collapse: { enabled, minRun, strict }`. On and strict by default —
+  byte-identical lines only, 0.2% of what the model reads, which cannot cost anything.
+  The masked comparison is worth 2.6% and stays opt-in until TH-19 measures what it
+  folds by mistake. <!-- th: prio=med size=M labels=hook,enhancement ver=main -->
+- [ ] **TH-19 — The false-positive rate of a masked collapse**: `collapse.strict: false`
+  is worth 2.6% against strict's 0.2%, and the whole difference is lines that differ in
+  their numbers — a redrawn progress bar, but also `test 3 failed` in a run of `test N
+  passed`. Sample the runs it folds on the transcripts, judge each as noise or content,
+  and publish the rate; the default flips only if it is low. <!-- th: prio=med size=M labels=benchmark,hook -->
 - [x] **TH-17 — The same result twice**: a result whose hash matches one already seen in
   the session would be replaced by a marker naming the earlier `tool_use_id` and its
   spill. **Dropped on the measurement** (TH-15, 2026-09-23): 1,052 repeated results in
