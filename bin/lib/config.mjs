@@ -25,11 +25,11 @@ export const DEFAULTS = Object.freeze({
   // cannot cost anything either.
   //
   // `strict: false` compares lines with digits, hex and colour codes masked. That is
-  // worth 2.6%, ten times as much, because it catches the redrawn progress bar whose
-  // whole point is that the numbers move — but it also folds a run of lines that differ
-  // only in their numbers, and `test 3 failed` in the middle of `test N passed` is then
-  // only in the spill. It stays opt-in until that false-positive rate is measured
-  // rather than guessed (TH-19).
+  // worth 2.6%, ten times as much — and a sample of 40 of the runs it folds says 38 of
+  // them are content, not noise: table rows, grep hits, version tags, log lines that
+  // differ by a timestamp (TH-19, 2026-09-23). A redrawn progress bar, the case the mask
+  // was written for, barely survives into a transcript at all. So it is off, and it is
+  // not a default in waiting: turn it on only for output you know is machine chatter.
   collapse: { enabled: true, minRun: 3, strict: true },
 })
 

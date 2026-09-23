@@ -6,6 +6,10 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Added
+- `evals/sample-runs.mjs`: a seeded, bounded sample of the runs a masked collapse folds,
+  for a human to classify. The verdict on this corpus — 38 of 40 runs are content, not
+  noise — is in the README, and `collapse.strict: false` is documented as a setting for
+  known machine chatter rather than a default in waiting (TH-19).
 - Runs of identical lines are collapsed to their first line and a count before the cut,
   so the budget buys distinct content: `bin/lib/collapse.mjs`, pure and unit-tested, with
   `collapse: { enabled, minRun, strict }` in the config. On and strict by default — only
