@@ -169,10 +169,28 @@ cutting alone — is smaller, and splits in an awkward place (2026-09-23, defaul
 
 Ten times the saving sits on the other side of a risk, and the risk is not symmetrical: a
 progress bar's numbers are noise, but `test 3 failed` in a run of `test N passed` is the
-one line that mattered, and after a masked collapse it is only in the spill. So the
-default is the conservative pair — on, strict — and the 2.6% stays opt-in until the
-false-positive rate is measured rather than guessed (TH-19). The spill always holds the
-output whole, so nothing a collapse drops is unrecoverable.
+one line that mattered. So the default is the conservative pair — on, strict. The spill
+always holds the output whole, so nothing a collapse drops is unrecoverable.
+
+That risk has since been measured rather than argued (TH-19, 2026-09-23). Of the 63 runs
+a masked collapse folds and a strict one leaves alone, a sample of 40
+(`node evals/sample-runs.mjs --n 40 --seed 1`, reproducible) classifies as:
+
+| | Runs | Characters |
+|---|---:|---:|
+| Content — each line carries a distinct fact | 38 | 64,559 (98.8%) |
+| Noise — only the numbers move | 2 | 753 (1.2%) |
+
+Not a progress bar in sight. What a masked collapse actually folds on these transcripts
+is table rows, `grep` hits at different line numbers, version tags, log lines with
+distinct timestamps, source lines, monitoring series — 2.6% bought by hiding data. The
+two it may fold safely are repeated alerts and connection-terminated lines whose only
+difference is a pid.
+
+The explanation is in what the corpus is: these are Bash results as the harness gave them
+to the model, and a redrawn progress bar rarely survives that far. **So `strict: false`
+stays off, and it is not a default in waiting** — turn it on only if you know your output
+is machine chatter, and read the spill when it matters.
 
 ## Design notes
 

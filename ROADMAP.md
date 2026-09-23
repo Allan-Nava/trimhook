@@ -4,7 +4,7 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**19 items · 12 shipped · 7 open · 3 milestones.**
+**19 items · 13 shipped · 6 open · 3 milestones.**
 
 ## At a glance
 
@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | **v0.1.0 — One cut, one number** | now | `#######...` 73% | 3 | 8 |
 | **v0.2.0 — Beyond Bash** | next | `..........` 0% | 3 | 0 |
-| **v0.3.0 — Less of the same** | later | `########..` 80% | 1 | 4 |
+| **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 5 |
 
 ## v0.1.0 — One cut, one number
 
@@ -38,6 +38,6 @@
 
 - [x] **TH-15** — What the repetition is worth · high · M · benchmark · `main`
 - [x] **TH-16** — Collapse the runs · med · M · hook, enhancement · `main`
-- [ ] **TH-19** — The false-positive rate of a masked collapse · med · M · benchmark, hook
+- [x] **TH-19** — The false-positive rate of a masked collapse · med · M · benchmark, hook · `main`
 - [x] **TH-17** — The same result twice · med · L · hook · `dropped`
 - [x] **TH-18** — One spill per content · low · S · hook · `dropped`

@@ -28,7 +28,14 @@ Two measurements, both without a key and without a network:
    `Read` tool inputs. A cap that is never followed by a read can drop; one that is read
    often is too low.
 
-The default cap moves only with both numbers in the README.
+3. **Judgement** — `node evals/sample-runs.mjs [--n 40] [--seed 1]` prints a bounded,
+   seeded sample of the runs a masked collapse would fold, for a human to classify as
+   noise or content. It is the only eval that puts output text on the screen, because
+   nothing else can tell a progress bar from a line per item; it still writes nothing.
+   Quote the seed with the verdict so anyone can re-draw the same sample and disagree.
+
+The default cap moves only with both numbers in the README, and
+`collapse.strict: false` moves only with the third.
 
 ## Backlog, roadmap, issues
 

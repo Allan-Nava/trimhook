@@ -106,7 +106,9 @@ which is what a gate is for.
 
 TH-16 then split the 3.8% in an awkward place: what the shipped pipeline actually saves
 is 0.2% when lines must match byte for byte, and 2.6% when their numbers are masked. The
-conservative half ships on; the valuable half waits for TH-19.
+conservative half ships on; TH-19 then looked at what the other half folds and found 38
+of 40 sampled runs were content, so it stays off for good rather than for now. Of the
+four items this milestone opened with, one shipped and three are closed by measurement.
 
 - [x] **TH-15 — What the repetition is worth**: `evals/local.mjs` extended with two
   counters over the same corpus — characters inside runs of near-identical lines, and
@@ -122,11 +124,13 @@ conservative half ships on; the valuable half waits for TH-19.
   byte-identical lines only, 0.2% of what the model reads, which cannot cost anything.
   The masked comparison is worth 2.6% and stays opt-in until TH-19 measures what it
   folds by mistake. <!-- th: prio=med size=M labels=hook,enhancement ver=main -->
-- [ ] **TH-19 — The false-positive rate of a masked collapse**: `collapse.strict: false`
-  is worth 2.6% against strict's 0.2%, and the whole difference is lines that differ in
-  their numbers — a redrawn progress bar, but also `test 3 failed` in a run of `test N
-  passed`. Sample the runs it folds on the transcripts, judge each as noise or content,
-  and publish the rate; the default flips only if it is low. <!-- th: prio=med size=M labels=benchmark,hook -->
+- [x] **TH-19 — The false-positive rate of a masked collapse**: `evals/sample-runs.mjs`,
+  a seeded sample of the runs a masked collapse folds and a strict one does not, for a
+  human to judge. 2026-09-23, 40 runs of 63, seed 1: **38 content, 2 noise — 95% by run,
+  98.8% by character**. Table rows, grep hits, version tags, log lines differing by a
+  timestamp; not one progress bar, because a redrawn one barely reaches a transcript.
+  `strict: false` stays off and is documented as not a default in waiting.
+  <!-- th: prio=med size=M labels=benchmark,hook ver=main -->
 - [x] **TH-17 — The same result twice**: a result whose hash matches one already seen in
   the session would be replaced by a marker naming the earlier `tool_use_id` and its
   spill. **Dropped on the measurement** (TH-15, 2026-09-23): 1,052 repeated results in
