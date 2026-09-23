@@ -5,6 +5,11 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 
 ## [Unreleased]
 
+### Fixed
+- The Pages site wore hookgate's wordmark: the header now reads `trimhook`. The inline
+  logo no longer carries its width and height twice, and the page title no longer repeats
+  the tagline the README's H1 already has (TH-8).
+
 ## [0.0.1] — 2026-09-23
 
 Not published: the scaffold and the first working hook, measured on transcripts, before
