@@ -78,10 +78,21 @@ count of spill files the model actually went back to read.
 
 ## v0.2.0 — Beyond Bash <!-- ms: phase=next -->
 
-- [ ] **TH-12 — Other tools**: `Read` of a large file, `WebFetch`, `Grep` results — the
-  same cut where the tool's output shape allows `updatedToolOutput`; measured first, as
-  TH-6 did for Bash (`Read` is 1.6 M of the 30 M characters in the same transcripts).
-  <!-- th: prio=med size=M labels=hook,benchmark -->
+- [x] **TH-12 — Other tools**: measured first, as TH-6 did for Bash. Of what each tool
+  prints, the cut would take 6.7% of Bash's, 26.6% of Read's, 62.4% of WebFetch's, 50.2%
+  of Agent's, and nothing at all from anything else (2026-09-23). Read and WebFetch add
+  1.38 M characters to Bash's 1.93 M, from 1,019 results against 28,761. Both shapes read
+  off real transcripts — Read cuts `file.content`, WebFetch cuts `result`, every other
+  field carried through — and the matcher now reads `Bash|Read|WebFetch`. `Agent` is left
+  out: its result is a list of message blocks, not one text field.
+  <!-- th: prio=med size=M labels=hook,benchmark ver=main -->
+- [ ] **TH-20 — Verify the Read and WebFetch replacement live**: the shapes are measured
+  from 815 real results and the tests hold the replacement to them, but no live session
+  has yet shown the harness accepting an `updatedToolOutput` for a tool other than Bash.
+  A rejected replacement is silent and fail-open — the model gets the original — but the
+  log would claim a saving it did not make. `trimhook report` now breaks down by tool,
+  which is where it would show. Confirm on a real session, then say so in the README.
+  <!-- th: prio=high size=S labels=hook,tests -->
 - [ ] **TH-13 — Smarter cuts for known formats**: a test runner's failures block, a
   build's error lines, a JSON's shape — kept whole even in the middle, when the pattern
   is unambiguous. Only with a measured false-positive rate. <!-- th: prio=low size=L labels=hook,enhancement -->

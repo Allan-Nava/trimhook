@@ -31,6 +31,13 @@ export const DEFAULTS = Object.freeze({
   // was written for, barely survives into a transcript at all. So it is off, and it is
   // not a default in waiting: turn it on only for output you know is machine chatter.
   collapse: { enabled: true, minRun: 3, strict: true },
+  // TH-12. Bash is most of the mass, but not most of the waste per result: of the
+  // characters each tool prints, the cut would take 6.7% of Bash's, 26.6% of Read's and
+  // 62.4% of WebFetch's (2026-09-23). A tool is listed here only when its output shape
+  // is known — `harness.mjs` names the three it has seen — because the harness ignores a
+  // replacement that does not match the tool's own shape, and an ignored replacement is
+  // a saving the log would claim and the model would not get (TH-20 verifies it live).
+  tools: ['Bash', 'Read', 'WebFetch'],
 })
 
 const merge = (a, b) => {
@@ -74,6 +81,7 @@ const RULES = {
   'collapse.enabled': (v) => typeof v === 'boolean' || 'true|false',
   'collapse.minRun': (v) => (Number.isInteger(v) && v >= 2) || 'an integer ≥ 2',
   'collapse.strict': (v) => typeof v === 'boolean' || 'true|false',
+  tools: (v) => (Array.isArray(v) && v.length > 0 && v.every((n) => typeof n === 'string' && n)) || 'a non-empty array of tool names',
 }
 const get = (o, path) => path.split('.').reduce((a, k) => (a && typeof a === 'object' ? a[k] : undefined), o)
 const set = (o, path, v) => {

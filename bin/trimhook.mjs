@@ -52,7 +52,10 @@ async function handler() {
 function checkHooksFile(path, rootVar, fail) {
   const hooks = json(path)
   const entries = hooks.hooks?.PostToolUse ?? []
-  if (!entries.some((e) => e.matcher === 'Bash')) fail(`${path}: the PostToolUse hook must match Bash`)
+  // The matcher is a regular expression the harness applies to the tool name, so the
+  // tools trimhook knows the shape of are alternatives in one entry. Bash must be among
+  // them: it is 28.7 M of the 30 M characters (TH-12).
+  if (!entries.some((e) => String(e.matcher ?? '').split('|').includes('Bash'))) fail(`${path}: the PostToolUse hook must match Bash`)
   for (const [event, es] of Object.entries(hooks.hooks ?? {})) {
     if (event !== 'PostToolUse') fail(`${path}: unexpected event ${event} — trimhook is one PostToolUse hook`)
     for (const e of es) {

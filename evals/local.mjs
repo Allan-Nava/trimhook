@@ -174,9 +174,26 @@ function duplicates(results) {
   return { count, chars, kept, worth, worthKept }
 }
 
-// One Bash result per entry: { chars, command }.
+// Every tool's result mass, for TH-12: the cut is Bash-only today, and the question is
+// which other tools carry enough characters to be worth the same treatment. Counts only
+// — the per-tool numbers need no text.
+function tally(byTool, name, chars, cap) {
+  const t = byTool.get(name) ?? { results: 0, chars: 0, over: 0, overChars: 0, saved: 0 }
+  t.results++
+  t.chars += chars
+  if (chars > cap) {
+    t.over++
+    t.overChars += chars
+    const r = trimResult({ stdout: 'x'.repeat(chars), stderr: '' }, { cap, head: DEFAULTS.head, minSaving: DEFAULTS.minSaving }, '/data/spill/s/t.txt')
+    if (r) t.saved += chars - r.after
+  }
+  byTool.set(name, t)
+}
+
+// One Bash result per entry: { chars, command }; every other tool is counted in byTool.
 function claudeResults() {
   const out = []
+  const byTool = new Map()
   let sessions = 0
   for (const file of files(join(homedir(), '.claude', 'projects'), '.jsonl')) {
     let lines
@@ -186,6 +203,7 @@ function claudeResults() {
       continue
     }
     const uses = new Map()
+    const names = new Map()
     let any = false
     for (const line of lines) {
       if (!line) continue
@@ -198,17 +216,23 @@ function claudeResults() {
       const msg = e.message
       if (!msg || !Array.isArray(msg.content)) continue
       for (const c of msg.content) {
-        if (c.type === 'tool_use' && c.name === 'Bash') uses.set(c.id, c.input?.command ?? '')
-        if (c.type === 'tool_result' && uses.has(c.tool_use_id)) {
+        if (c.type === 'tool_use') {
+          names.set(c.id, c.name)
+          if (c.name === 'Bash') uses.set(c.id, c.input?.command ?? '')
+        }
+        if (c.type === 'tool_result' && names.has(c.tool_use_id)) {
           const text = typeof c.content === 'string' ? c.content : Array.isArray(c.content) ? c.content.map((x) => x.text ?? '').join('') : ''
-          out.push(measure(text, commandPrefix(uses.get(c.tool_use_id)), file))
-          any = true
+          tally(byTool, names.get(c.tool_use_id), text.length, DEFAULTS.cap)
+          if (uses.has(c.tool_use_id)) {
+            out.push(measure(text, commandPrefix(uses.get(c.tool_use_id)), file))
+            any = true
+          }
         }
       }
     }
     if (any) sessions++
   }
-  return { sessions, results: out }
+  return { sessions, results: out, byTool }
 }
 
 function codexResults() {
@@ -314,6 +338,16 @@ const lines = [
   `- Of those, ${k(rep.keptRepeated)} characters survive the cut, inside the head and the tail the model reads: ${pct1(share(rep.keptRepeated, rep.kept))} of what it reads, ${verdict(share(rep.keptRepeated, rep.kept))} — this is the number TH-16 is judged on.`,
   `- Blank runs, counted apart: ${k(rep.blank)} characters, ${k(rep.keptBlank)} of them in the kept region.`,
   `- Results byte-identical to an earlier one in the same session: ${k(dup.count)} results, ${k(dup.chars)} characters, ${k(dup.kept)} after the cut — ${pct1(share(dup.kept, rep.kept))} of what the model reads, ${verdict(share(dup.kept, rep.kept))}.`,
+  '',
+  `## Every tool, not just Bash (TH-12, at cap ${k(MAIN.cap)})`,
+  '',
+  '| Tool | Results | Characters | Over the cap | Would be saved | Share of its own |',
+  '|---|---:|---:|---:|---:|---:|',
+  ...[...claude.byTool.entries()]
+    .sort((a, b) => b[1].saved - a[1].saved || b[1].chars - a[1].chars)
+    .slice(0, 12)
+    .map(([name, t]) => `| ${name} | ${k(t.results)} | ${k(t.chars)} | ${k(t.over)} | ${k(t.saved)} | ${pct1(share(t.saved, t.chars))} |`),
+  '',
   `- Of those, ${k(dup.worth)} are still over 200 characters once cut (${k(dup.worthKept)} characters): below that a marker costs what the text does — this is the number TH-17 is judged on.`,
   '',
   `### What collapsing actually saves (TH-16, minRun ${DEFAULTS.collapse.minRun})`,

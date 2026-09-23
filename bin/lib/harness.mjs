@@ -26,15 +26,35 @@ export function dataDir(env = process.env) {
   return env.TRIMHOOK_DATA ?? env.CLAUDE_PLUGIN_DATA ?? env.PLUGIN_DATA ?? join(homedir(), '.trimhook')
 }
 
-// The tool_response shapes. Claude Code's Bash returns {stdout, stderr, interrupted,
-// isImage}; Codex sends the model-facing output, a string or an object. Returns
-// {stdout, stderr, rest} or null when there is nothing text-like to trim.
+// The tool_response shapes, read off 2026-09-23 transcripts rather than guessed:
+//
+//   Bash      {stdout, stderr, interrupted, isImage, noOutputExpected}   25,555 results
+//   Read      {type: 'text', file: {filePath, content, numLines, …}}        680 results
+//             — and {type: 'image', file: {base64, …}}, which is refused
+//   WebFetch  {bytes, code, codeText, result, durationMs, url}             135 results
+//
+// Codex sends the model-facing output instead, a string or an object.
+//
+// Returns {stdout, stderr, rest, shape} or null when there is nothing text-like to trim.
+// `shape` is what puts the text back where it came from: the harness ignores an
+// updatedToolOutput that does not match the tool's own output shape, so a replacement
+// changes the one field that holds the text and carries every other field through
+// untouched.
 export function readResponse(r) {
-  if (typeof r === 'string') return { stdout: r, stderr: '', rest: null }
+  if (typeof r === 'string') return { stdout: r, stderr: '', rest: null, shape: 'text' }
   if (!r || typeof r !== 'object') return null
   if (r.isImage) return null
-  if (typeof r.stdout === 'string' || typeof r.stderr === 'string') return { stdout: r.stdout ?? '', stderr: r.stderr ?? '', rest: r }
-  if (typeof r.output === 'string') return { stdout: r.output, stderr: '', rest: r }
+  if (typeof r.stdout === 'string' || typeof r.stderr === 'string') return { stdout: r.stdout ?? '', stderr: r.stderr ?? '', rest: r, shape: 'bash' }
+  // Read: the file's own content. An image Read has no text and a base64 body that must
+  // never be cut — numLines and totalLines still describe the file, not the excerpt, so
+  // they are left alone and the marker says what is missing.
+  if (r.file && typeof r.file === 'object' && typeof r.file.content === 'string') {
+    if (r.type === 'image' || typeof r.file.base64 === 'string') return null
+    return { stdout: r.file.content, stderr: '', rest: r, shape: 'file' }
+  }
+  // WebFetch: the fetched text, beside the status and timing that describe the fetch.
+  if (typeof r.result === 'string' && typeof r.url === 'string') return { stdout: r.result, stderr: '', rest: r, shape: 'result' }
+  if (typeof r.output === 'string') return { stdout: r.output, stderr: '', rest: r, shape: 'output' }
   return null
 }
 
@@ -48,10 +68,17 @@ export function replacementOutput(harness, original, stdout, stderr, note) {
     return { decision: 'block', reason: text, systemMessage: note }
   }
   const rest = original?.rest ?? {}
-  return {
-    hookSpecificOutput: {
-      hookEventName: 'PostToolUse',
-      updatedToolOutput: { ...rest, stdout, stderr, interrupted: rest.interrupted ?? false, isImage: false },
-    },
-  }
+  const updated = (() => {
+    switch (original?.shape) {
+      case 'file':
+        return { ...rest, file: { ...rest.file, content: stdout } }
+      case 'result':
+        return { ...rest, result: stdout }
+      case 'output':
+        return { ...rest, output: stdout }
+      default:
+        return { ...rest, stdout, stderr, interrupted: rest.interrupted ?? false, isImage: false }
+    }
+  })()
+  return { hookSpecificOutput: { hookEventName: 'PostToolUse', updatedToolOutput: updated } }
 }

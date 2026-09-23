@@ -37,7 +37,7 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
 
 | Event | Match | Decision | Effect |
 |---|---|---|---|
-| `PostToolUse` | `Bash` | none — the command has already run | If `stdout + stderr` exceed the cap by at least `minSaving`, the result is replaced by head + marker + tail (`updatedToolOutput` on Claude Code; `decision: block` with the trimmed text as the feedback on Codex, opt-in until verified live). Below the cap, or on an image result, or on any error: no output, the harness proceeds unchanged. |
+| `PostToolUse` | `Bash`, `Read`, `WebFetch` | none — the tool has already run | If `stdout + stderr` exceed the cap by at least `minSaving`, the result is replaced by head + marker + tail (`updatedToolOutput` on Claude Code; `decision: block` with the trimmed text as the feedback on Codex, opt-in until verified live). Below the cap, or on an image result, or on any error: no output, the harness proceeds unchanged. |
 
 The marker reads, verbatim:
 
@@ -97,7 +97,8 @@ trimhook never sees the rest.
   "spill": true,
   "spillTtlDays": 7,
   "codex": { "replace": false },
-  "collapse": { "enabled": true, "minRun": 3, "strict": true }
+  "collapse": { "enabled": true, "minRun": 3, "strict": true },
+  "tools": ["Bash", "Read", "WebFetch"]
 }
 ```
 
@@ -105,6 +106,14 @@ trimhook never sees the rest.
 report before the effect. `perCommand` keys are the command's first word or first two
 (`cd …` hops skipped), the more specific winning. Every value is validated; a bad one is
 reported by `doctor` and the default takes its place.
+
+`tools` is the list trimhook will cut. A tool is on it only when its output shape has
+been read off real transcripts — the harness ignores a replacement that does not match
+the tool's own shape, so an unknown shape would be a saving the log claims and the model
+never gets. `perCommand` keys work for them too: `{ "Read": 20000 }` gives Read its own
+cap. For Bash the whole `stdout`/`stderr` pair is cut; for Read it is `file.content`,
+with `numLines` and `totalLines` left describing the file rather than the excerpt; for
+WebFetch it is `result`, beside the status and timing that describe the fetch.
 
 `collapse` folds a run of `minRun` or more identical lines down to its first line and a
 count, before the cut, so the budget buys distinct content. `strict` compares lines byte
@@ -135,6 +144,26 @@ list of what gets cut — whole-file reads and hand-rolled loops, not test runs.
 default cap is the open question the design phase carries (`thoughts/`), and the live
 measurement (TH-10) is what settles it: `trimhook report` on a week of real work, plus a
 count of how often the model went and read a spill file.
+
+### It is not only Bash
+
+Bash is 28.7 M of the 30 M characters the tools printed, but not the worst offender per
+result. Of what each tool prints, this is the share the cut would take at the default cap
+(2026-09-23):
+
+| Tool | Results | Characters | Over the cap | Saved | Share of its own |
+|---|---:|---:|---:|---:|---:|
+| Bash | 28,761 | 28,666,550 | 386 | 1,930,062 | 6.7% |
+| Read | 880 | 2,651,454 | 94 | 704,824 | 26.6% |
+| WebFetch | 139 | 1,082,613 | 24 | 675,065 | 62.4% |
+| Agent | 49 | 205,494 | 6 | 103,211 | 50.2% |
+| Edit, Write, WebSearch, … | 2,565 | 578,000 | 0 | 0 | 0% |
+
+Read and WebFetch together add 1.38 M characters to Bash's 1.93 M — 72% more, from 1,019
+results against Bash's 28,761. A fetched page is long nearly every time it is long at
+all; a shell command usually is not. `Agent` is left out for now: its result is a list of
+message blocks rather than one text field, and a shape guessed wrong is a replacement the
+harness discards. Everything below it in the table never crosses the cap at all.
 
 ### The same thing twice
 

@@ -6,6 +6,15 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Added
+- The cut applies to `Read` and `WebFetch` as well as `Bash`, with the `tools` config key
+  to narrow it. Both shapes were read off real transcripts: Read's `file.content` is cut
+  with `numLines` and `totalLines` left describing the file, WebFetch's `result` is cut
+  beside the status and timing, and every other field is carried through untouched. Worth
+  1.38 M characters against Bash's 1.93 M on the local corpus. The matcher in both hook
+  manifests is now `Bash|Read|WebFetch` (TH-12).
+- `trimhook report` breaks its saving down by tool, and the log record carries the tool
+  name — the place a replacement the harness silently refused would show up (TH-20).
+- `evals/local.mjs` counts every tool's result mass, not only Bash's (TH-12).
 - `evals/sample-runs.mjs`: a seeded, bounded sample of the runs a masked collapse folds,
   for a human to classify. The verdict on this corpus — 38 of 40 runs are content, not
   noise — is in the README, and `collapse.strict: false` is documented as a setting for
