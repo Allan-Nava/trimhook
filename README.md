@@ -9,10 +9,12 @@ one line that says how much is missing and **where the whole output is**, and lo
 saved. Nothing is decided by a model, nothing leaves the machine, and when anything goes
 wrong the model sees exactly what it would have seen without the plugin.
 
-> **Status: implemented, measured on transcripts, not yet released.** The hook, the
-> spill files, `doctor` and `report` are in. The number that matters — what it saves on
-> real sessions, and whether a head-and-tail ever hid something the model needed — is
-> measured below on local transcripts and will be measured live before 0.1.0.
+> **Status: 0.1.0, measured on transcripts, not yet on live sessions.** The hook, the
+> spill files, `doctor` and `report` are in and released. The number that matters — what
+> it saves on real sessions, and whether a head-and-tail ever hid something the model
+> needed — is measured below on local transcripts only; the live week (TH-10) is still
+> open, and until it lands the default cap is a reasoned choice rather than a measured
+> one.
 
 ## Why a hook and not a setting
 

@@ -1,6 +1,6 @@
 {
   "name": "trimhook",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Tool output trimmed at the source: a PostToolUse hook for Claude Code and Codex CLI that keeps the head and tail of a long shell result, spills the whole of it to a file the model can read, and reports what it saved.",
   "type": "module",
   "bin": {

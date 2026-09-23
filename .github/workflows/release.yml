@@ -147,7 +147,7 @@ jobs:
             echo "/plugin install trimhook@trimhook"
             echo '```'
             echo
-            echo "Set TYPESAFE_API_KEY in the environment Claude Code runs in. Without it every gate falls through."
+            echo "No key, no configuration: the hook trims Bash output over the cap and falls through whenever it cannot."
             echo
             echo "Repo: https://github.com/Allan-Nava/trimhook"
             echo
