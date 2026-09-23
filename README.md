@@ -96,7 +96,8 @@ trimhook never sees the rest.
   "perCommand": { "git log": 4000, "npm test": 16000 },
   "spill": true,
   "spillTtlDays": 7,
-  "codex": { "replace": false }
+  "codex": { "replace": false },
+  "collapse": { "enabled": true, "minRun": 3, "strict": true }
 }
 ```
 
@@ -104,6 +105,14 @@ trimhook never sees the rest.
 report before the effect. `perCommand` keys are the command's first word or first two
 (`cd …` hops skipped), the more specific winning. Every value is validated; a bad one is
 reported by `doctor` and the default takes its place.
+
+`collapse` folds a run of `minRun` or more identical lines down to its first line and a
+count, before the cut, so the budget buys distinct content. `strict` compares lines byte
+for byte: the copies it drops said exactly what the line it keeps says, so it cannot lose
+information. `"strict": false` compares them with digits, hex blobs, spacing and colour
+codes masked — ten times the saving, because it catches the progress bar whose whole
+point is that the numbers move, but it will also fold a run of lines that differ only in
+their numbers. See the measurement below before turning it on.
 
 ## What the transcripts say
 
@@ -147,6 +156,23 @@ already removes. At 3.8% the line runs are worth collapsing (TH-16). At 0.4% the
 results are not — 1,052 of them, but only 93 still over 200 characters once cut, which is
 about what the marker replacing them would cost — so TH-17 and TH-18 are dropped rather
 than built, on this corpus, by the rule the milestone set before the measurement.
+
+### What collapsing actually saves
+
+3.8% is the ceiling. What the shipped pipeline takes out — collapse, then cut, against
+cutting alone — is smaller, and splits in an awkward place (2026-09-23, default cap):
+
+| `collapse.strict` | Characters | Share of what the model reads | |
+|---|---:|---:|---|
+| `true` (default) | 43,147 | 0.2% | byte-identical lines; cannot lose information |
+| `false` | 692,174 | 2.6% | also folds lines that differ only in their numbers |
+
+Ten times the saving sits on the other side of a risk, and the risk is not symmetrical: a
+progress bar's numbers are noise, but `test 3 failed` in a run of `test N passed` is the
+one line that mattered, and after a masked collapse it is only in the spill. So the
+default is the conservative pair — on, strict — and the 2.6% stays opt-in until the
+false-positive rate is measured rather than guessed (TH-19). The spill always holds the
+output whole, so nothing a collapse drops is unrecoverable.
 
 ## Design notes
 

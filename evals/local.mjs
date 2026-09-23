@@ -27,6 +27,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { collapseRuns } from '../bin/lib/collapse.mjs'
 import { DEFAULTS } from '../bin/lib/config.mjs'
 import { commandPrefix } from '../bin/lib/handlers.mjs'
 import { trimResult } from '../bin/lib/trim.mjs'
@@ -120,6 +121,13 @@ function keptText(text) {
 
 // One result in, counts out. The text is measured here and referenced nowhere after:
 // what survives this function is numbers, a command prefix and a digest.
+// What the shipped pipeline actually saves (TH-16), as opposed to the ceiling the
+// counters above describe: collapse, then cut, then compare with cutting alone. Both
+// strictnesses, because the choice between them is the whole risk of the feature.
+function collapsedKept(text, strict) {
+  return keptText(collapseRuns(text, { minRun: DEFAULTS.collapse.minRun, strict }).text).length
+}
+
 function measure(text, command, session) {
   const kept = keptText(text)
   const whole = runStats(text)
@@ -127,6 +135,8 @@ function measure(text, command, session) {
   return {
     chars: text.length,
     kept: kept.length,
+    keptStrict: collapsedKept(text, true),
+    keptMasked: collapsedKept(text, false),
     command,
     session,
     hash: createHash('sha256').update(text).digest('hex'),
@@ -267,13 +277,15 @@ const rep = all.reduce(
   (a, r) => ({
     chars: a.chars + r.chars,
     kept: a.kept + r.kept,
+    keptStrict: a.keptStrict + r.keptStrict,
+    keptMasked: a.keptMasked + r.keptMasked,
     repeated: a.repeated + r.repeated,
     blank: a.blank + r.blank,
     runs: a.runs + r.runs,
     keptRepeated: a.keptRepeated + r.keptRepeated,
     keptBlank: a.keptBlank + r.keptBlank,
   }),
-  { chars: 0, kept: 0, repeated: 0, blank: 0, runs: 0, keptRepeated: 0, keptBlank: 0 },
+  { chars: 0, kept: 0, keptStrict: 0, keptMasked: 0, repeated: 0, blank: 0, runs: 0, keptRepeated: 0, keptBlank: 0 },
 )
 const share = (n, d) => (d ? n / d : 0)
 // The repetition shares live near the bar, where rounding to whole per cent decides
@@ -303,6 +315,13 @@ const lines = [
   `- Blank runs, counted apart: ${k(rep.blank)} characters, ${k(rep.keptBlank)} of them in the kept region.`,
   `- Results byte-identical to an earlier one in the same session: ${k(dup.count)} results, ${k(dup.chars)} characters, ${k(dup.kept)} after the cut — ${pct1(share(dup.kept, rep.kept))} of what the model reads, ${verdict(share(dup.kept, rep.kept))}.`,
   `- Of those, ${k(dup.worth)} are still over 200 characters once cut (${k(dup.worthKept)} characters): below that a marker costs what the text does — this is the number TH-17 is judged on.`,
+  '',
+  `### What collapsing actually saves (TH-16, minRun ${DEFAULTS.collapse.minRun})`,
+  '',
+  `The counters above are the ceiling; these two are the pipeline as it ships — collapse, then cut, against cutting alone.`,
+  '',
+  `- Strict, byte-identical lines only: ${k(rep.kept - rep.keptStrict)} characters, ${pct1(share(rep.kept - rep.keptStrict, rep.kept))} of what the model reads. Cannot lose information — the second copy of a line says what the first did.`,
+  `- Masked, numbers and colour codes folded: ${k(rep.kept - rep.keptMasked)} characters, ${pct1(share(rep.kept - rep.keptMasked, rep.kept))}. The extra ${k(rep.keptStrict - rep.keptMasked)} characters over strict are the ones bought at the risk of folding lines that differ in their numbers.`,
 ]
 console.log(lines.join('\n'))
 if (argv.includes('--json')) {

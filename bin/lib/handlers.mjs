@@ -1,5 +1,6 @@
 // The one handler: read the result, decide, spill, replace, log — and on any error,
 // print nothing, so the model sees exactly what it would have seen without trimhook.
+import { collapseRuns } from './collapse.mjs'
 import { capFor, loadConfig } from './config.mjs'
 import { dataDir, detectHarness, readResponse, replacementOutput } from './harness.mjs'
 import { appendRecord, pruneSpill, spill } from './store.mjs'
@@ -16,18 +17,30 @@ export async function postToolUse(input, deps = {}) {
   const command = input.tool_input?.command ?? ''
   const cap = capFor(cfg, command)
   const path = cfg.spill && cfg.mode === 'trim' ? spill(dir, input.session_id, input.tool_use_id, res.stdout, res.stderr) : null
-  const t = trimResult(res, { cap, head: cfg.head, minSaving: cfg.minSaving }, path)
-  const record = { at: new Date(deps.now()).toISOString(), session: input.session_id ?? null, harness, mode: cfg.mode, command: commandPrefix(command), before: res.stdout.length + res.stderr.length, cap }
-  if (!t) {
+  const before = res.stdout.length + res.stderr.length
+  // TH-16, and it runs first on purpose: the cut should spend its budget on distinct
+  // content, not on the same line again. The spill above is written from the original,
+  // so what a run loses here is recoverable exactly as an elided middle is.
+  const col = cfg.collapse.enabled && before > cap ? { out: collapseRuns(res.stdout, cfg.collapse), err: collapseRuns(res.stderr, cfg.collapse) } : null
+  const collapsed = col ? col.out.collapsed + col.err.collapsed : 0
+  const body = collapsed ? { stdout: col.out.text, stderr: col.err.text } : res
+  const t = trimResult(body, { cap, head: cfg.head, minSaving: cfg.minSaving }, path)
+  const record = { at: new Date(deps.now()).toISOString(), session: input.session_id ?? null, harness, mode: cfg.mode, command: commandPrefix(command), before, cap }
+  // Collapsing alone can bring a result under the cap, and then there is nothing left to
+  // elide — but there is still a shorter result to hand back.
+  const after = t ? t.after : body.stdout.length + body.stderr.length
+  if (!t && !(collapsed && before - after >= cfg.minSaving)) {
     appendRecord(dir, { ...record, outcome: 'kept', after: record.before })
     return null
   }
   if (Math.random() < 0.05) pruneSpill(dir, cfg.spillTtlDays * 86400000, deps.now())
   const replaced = cfg.mode === 'trim' && (harness !== 'codex' || cfg.codex.replace)
-  appendRecord(dir, { ...record, outcome: replaced ? 'trimmed' : 'would-trim', after: t.after, elided: t.elided, spill: path })
+  const elided = t ? t.elided : 0
+  appendRecord(dir, { ...record, outcome: replaced ? 'trimmed' : 'would-trim', after, elided, collapsed, spill: path })
   if (!replaced) return null
-  const note = `trimhook: ${t.elided.toLocaleString('en-US')} characters of this result were elided${path ? `; the whole output is at ${path}` : ''}.`
-  return replacementOutput(harness, res, t.stdout, t.stderr, note)
+  const removed = [elided && `${elided.toLocaleString('en-US')} characters elided`, collapsed && `${collapsed.toLocaleString('en-US')} in repeated lines`].filter(Boolean).join(', ')
+  const note = `trimhook: ${removed} from this result${path ? `; the whole output is at ${path}` : ''}.`
+  return replacementOutput(harness, res, t ? t.stdout : body.stdout, t ? t.stderr : body.stderr, note)
 }
 
 // For the log: the command's first word, or first two when the first takes a

@@ -84,3 +84,33 @@ test('a broken config is a problem for doctor, not a change to the result', asyn
   const out = await postToolUse(input(lines(5000)), { env: env(d) })
   assert.ok(out.hookSpecificOutput.updatedToolOutput.stdout.length <= 8000, 'defaults applied')
 })
+
+test('runs of repeated lines are collapsed before the cut, and the spill keeps them all', async () => {
+  const d = tmp()
+  const repeated = 'downloading a package from somewhere\n'.repeat(400)
+  const out = await postToolUse(input(`${lines(60)}\n${repeated}${lines(60)}`), { env: env(d) })
+  const u = out.hookSpecificOutput.updatedToolOutput
+  assert.match(u.stdout, /… \[trimhook: 399 more like it\] …/)
+  assert.equal(u.stdout.split('downloading a package from somewhere').length - 1, 1, 'the run is down to one line')
+  // Collapsing alone brings this under the cap, so there is no elision at all: the head
+  // and the tail are the whole output.
+  assert.ok(!/characters elided/.test(u.stdout), 'no middle was cut')
+  assert.ok(u.stdout.startsWith('line 1\n') && u.stdout.endsWith('line 60'))
+  const [r] = log(d)
+  assert.equal(r.outcome, 'trimmed')
+  assert.equal(r.elided, 0)
+  assert.ok(r.collapsed > 14000, `collapsed ${r.collapsed}`)
+  assert.equal(readFileSync(r.spill, 'utf8').split('downloading a package from somewhere').length - 1, 400, 'the spill has every line')
+})
+
+test('collapsing is off when the config says so, and never fires under the cap', async () => {
+  const d = tmp()
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ collapse: { enabled: false } }))
+  const out = await postToolUse(input('a repeated line of output\n'.repeat(400)), { env: env(d) })
+  assert.ok(!/more like it/.test(out.hookSpecificOutput.updatedToolOutput.stdout), 'no collapsing')
+  assert.match(out.hookSpecificOutput.updatedToolOutput.stdout, /characters elided/)
+
+  const d2 = tmp()
+  assert.equal(await postToolUse(input('short\n'.repeat(3)), { env: env(d2) }), null)
+  assert.deepEqual(log(d2).map((r) => r.outcome), ['kept'])
+})
