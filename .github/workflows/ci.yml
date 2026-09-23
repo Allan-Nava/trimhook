@@ -26,13 +26,20 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm test
-      # A handler with no key must fall through — exit 0, empty stdout — once per harness
-      # environment: Claude Code (CLAUDE_PLUGIN_ROOT) and Codex CLI (PLUGIN_ROOT).
+      # The handler's contract, once per harness environment: a short result prints
+      # nothing (the harness proceeds unchanged); a long result comes back as JSON with
+      # the replacement on Claude Code and, on Codex, as nothing until codex.replace is on.
       - run: |
+          short='{"hook_event_name":"PostToolUse","session_id":"ci","tool_use_id":"t1","tool_name":"Bash","tool_input":{"command":"echo ok"},"tool_response":{"stdout":"ok\n","stderr":"","interrupted":false,"isImage":false},"cwd":"/tmp"}'
+          long=$(node -e 'process.stdout.write(JSON.stringify({hook_event_name:"PostToolUse",session_id:"ci",tool_use_id:"t2",tool_name:"Bash",tool_input:{command:"seq 1 5000"},tool_response:{stdout:Array.from({length:5000},(_,i)=>String(i+1)).join("\n"),stderr:"",interrupted:false,isImage:false},cwd:"/tmp"}))')
           for h in CLAUDE_PLUGIN_ROOT PLUGIN_ROOT; do
-            out="$(echo '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"rm -rf /"},"cwd":"/tmp"}' | env -u TYPESAFE_API_KEY $h=/plugin node bin/trimhook.mjs pre-tool-use)"
-            test -z "$out" || { echo "$h: expected fall-through, got $out"; exit 1; }
+            out="$(echo "$short" | TRIMHOOK_DATA=$RUNNER_TEMP/th-$h env $h=/plugin node bin/trimhook.mjs post-tool-use)"
+            test -z "$out" || { echo "$h: a short result must pass unchanged, got $out"; exit 1; }
           done
+          out="$(echo "$long" | TRIMHOOK_DATA=$RUNNER_TEMP/th-claude CLAUDE_PLUGIN_ROOT=/plugin node bin/trimhook.mjs post-tool-use)"
+          echo "$out" | node -e 'const o=JSON.parse(require("fs").readFileSync(0,"utf8"));const s=o.hookSpecificOutput.updatedToolOutput.stdout;if(!(s.length<=8000&&/trimhook: [\d,]+ of/.test(s)))process.exit(1)' || { echo "Claude Code: expected a trimmed replacement, got $out"; exit 1; }
+          out="$(echo "$long" | TRIMHOOK_DATA=$RUNNER_TEMP/th-codex PLUGIN_ROOT=/plugin node bin/trimhook.mjs post-tool-use)"
+          test -z "$out" || { echo "Codex: replacement must be opt-in, got $out"; exit 1; }
 
   pack:
     runs-on: ubuntu-latest
