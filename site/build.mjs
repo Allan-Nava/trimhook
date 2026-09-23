@@ -24,7 +24,10 @@ const md = readFileSync(join(ROOT, 'README.md'), 'utf8')
 // One logo, three consumers: the favicon (inlined), the header, the hero.
 const logo = readFileSync(join(ROOT, 'assets', 'logo.svg'), 'utf8')
 const favicon = `data:image/svg+xml,${encodeURIComponent(logo.replace(/\n\s*/g, '').replace(/<title>.*?<\/title>/, ''))}`
-const mark = (size, cls) => logo.replace('<svg', `<svg class="${cls}" width="${size}" height="${size}"`)
+// The root tag's own width/height go — only that tag's, the rects keep theirs —
+// or the element would carry each attribute twice.
+const mark = (size, cls) =>
+  logo.replace(/<svg[^>]*>/, (tag) => tag.replace(/\s(?:width|height)="[^"]*"/g, '').replace('<svg', `<svg class="${cls}" width="${size}" height="${size}"`))
 
 marked.setOptions({ mangle: false, headerIds: false })
 
@@ -100,7 +103,7 @@ ${linkifyPaths(dropEmptyHead(marked.parse(s.body)))}
   </section>`
 }
 
-// The one thing the page adds to the README: the gates that actually ship, read
+// The one thing the page adds to the README: the hook that actually ships, read
 // off hooks/hooks.json so the list cannot go stale.
 function renderInventory() {
   const hooks = JSON.parse(readFileSync(join(ROOT, 'hooks', 'hooks.json'), 'utf8'))
@@ -135,8 +138,8 @@ const description = lede
   .replace(/\n/g, ' ')
   .split(/\.\s/)[0]
   .concat('.')
-// License is one word — the footer already carries it. The generated skills
-// index goes before Prior art, so the page ends on credits, not on an appendix.
+// License is one word — the footer already carries it. The generated hook
+// inventory goes before Prior art, so the page ends on credits, not on an appendix.
 const body = sections.filter((s) => !/^license$/i.test(s.heading))
 const nav = body.filter((s) => !/^prior art$/i.test(s.heading))
 const priorArtAt = body.findIndex((s) => /^prior art$/i.test(s.heading))
@@ -153,7 +156,8 @@ rendered.splice(priorArtAt === -1 ? rendered.length : priorArtAt, 0, inventorySe
 // One derived headline, reused by <title>, Open Graph, Twitter and JSON-LD, so
 // the four can never drift apart. Like everything else on the page, the words
 // come from README.md — the generator adds none of its own.
-const headline = `${title} — tool output trimmed at the source, for Claude Code and Codex CLI`
+// The README's H1 already carries the tagline, so only the harnesses are added.
+const headline = `${title}, for Claude Code and Codex CLI`
 
 // Structured data. The strings are the same two the meta tags use; nothing here
 // is written for the crawler that is not already on the page.
@@ -317,7 +321,7 @@ footer .row { display: flex; gap: 1.25rem; flex-wrap: wrap; }
 <body>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="#top">${mark(22, 'brand-mark')}hook<span>gate</span></a>
+    <a class="brand" href="#top">${mark(22, 'brand-mark')}trim<span>hook</span></a>
     <nav>
 ${nav.map((s) => `      <a href="#${slug(s.heading)}">${esc(s.heading)}</a>`).join('\n')}
       <a class="gh" href="${REPO}">GitHub</a>
