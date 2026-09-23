@@ -5,10 +5,24 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-09-23
+
+First published version. The hook is the one measured on transcripts; the live week
+(TH-10) is still open, so the default cap is a reasoned choice and the README says so.
+
+### Added
+- Published to npm as `trimhook`, and installable as a Claude Code plugin from this
+  repository's marketplace (TH-11).
+- v0.3.0 milestone in the backlog — the repetition the head-and-tail cut still pays for
+  in full: runs of near-identical lines, and the same result twice in a session
+  (TH-15 … TH-18).
+
 ### Fixed
 - The Pages site wore hookgate's wordmark: the header now reads `trimhook`. The inline
   logo no longer carries its width and height twice, and the page title no longer repeats
   the tagline the README's H1 already has (TH-8).
+- The release notes told the reader to set `TYPESAFE_API_KEY`, which belongs to a
+  different plugin: trimhook consults no model and needs no key (TH-7).
 
 ## [0.0.1] — 2026-09-23
 

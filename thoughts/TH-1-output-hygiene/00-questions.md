@@ -97,7 +97,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   failed (an error object or `is_error`-style flag in the hook payload, a timeout, an
   interrupted command). A command that ran and exited non-zero is an ordinary result
   and is trimmed like any other, with the stderr floor as its protection.
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted (2026-09-23, on the maintainer's instruction to run TH-1 on the defaults). Shipped state: the handler does not look at the exit code at all — it trims by size only; whether a non-zero exit should exempt a result is for Design to decide from Research's facts.
 
 ### Q2 · Does the `PostToolUse` payload deliver stdout and stderr as separate fields on both harnesses, or as one combined string?
 
@@ -116,7 +116,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   single string. The proportional cap and stderr floor apply where the streams are
   distinguishable; where they are not, the cap applies to the combined text. Research
   verifies both payloads against the current hook references, dated.
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted. Shipped state: `readResponse` in `bin/lib/harness.mjs` accepts Claude Code's `{stdout, stderr, interrupted, isImage}`, a bare string, and `{output}`; the Codex shape is assumed, not observed (TH-9).
 
 ### Q3 · Where do spill files live on each harness, how long do they survive, and what stops a prune from deleting a file the current session's marker still points at?
 
@@ -136,7 +136,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   are pruned by age with a generous window (days, not hours), pruning runs at hook
   start, and nothing written during the current calendar day is ever pruned. The marker
   carries an absolute path.
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted. Shipped state: `<data>/spill/<session>/<tool-use>.txt`, 0600, data dir from `TRIMHOOK_DATA`, `CLAUDE_PLUGIN_DATA`, `PLUGIN_DATA` or `~/.trimhook`; pruned after `spillTtlDays` (7) on one call in twenty; nothing protects a file younger than the TTL from anything, and nothing older is guaranteed.
 
 ### Q4 · What does "verified on a live Codex session" mean concretely — who runs it, what is observed, and what happens to the 0.1.0 done-when if the replacement does not behave?
 
@@ -154,7 +154,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   (b) no re-run of the same command. Allan runs it once before 0.1.0. If it fails or
   cannot be run, `codex.replace` stays `false`, the README says so with the date, and
   0.1.0 still ships — Codex replacement is not a release blocker.
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted. Shipped state: `codex.replace` is off; TH-9 in BACKLOG.md is the live verification, run by the maintainer with the agent, on Codex 0.155+ in a scratch repository with `print-hooks`.
 
 ### Q5 · The README's default cap must be "chosen from the measurements", one of which is a week of live use — does 0.1.0 ship before that week exists, and on which cap?
 
@@ -170,7 +170,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   week. The live week runs on Allan's own sessions with that build; the cap is revisited
   and the README's second measurement is added in the next release, and `npm test`
   checks the statements as dated claims, not as "final".
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted. Shipped state: cap 8,000; BACKLOG.md v0.1.0 says the week of live measurement (TH-10) gates the tag and decides the cap.
 
 ### Q6 · How does the hook command reach trimhook's code on each harness — is `trimhook` a binary on `PATH`, a path inside the plugin, or an absolute path baked in by `print-hooks`?
 
@@ -188,7 +188,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   absolute path of the running installation resolved at print time. The CLI subcommands
   are reached with `npx trimhook …` or a global install; the hook never depends on
   `PATH`.
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted. Shipped state: Claude Code runs `${CLAUDE_PLUGIN_ROOT}/bin/trimhook.mjs post-tool-use` (shebang, `args`); Codex runs the absolute path `trimhook print-hooks` writes into `.codex/hooks.json`; nothing is on `PATH` unless installed with npm.
 
 ### Q7 · How is "the model went back to read a spill file" counted when the hook only observes `Bash` — from the hook itself, or from the transcripts after the fact?
 
@@ -204,7 +204,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   Claude Code transcripts, matching any tool call whose input contains a spill-file
   path, with the trimmed result that produced it and any re-run of the same command in
   the following turns. The hook itself records nothing about re-reads.
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted. Shipped state: not counted anywhere yet; CONTRIBUTING.md proposes grepping transcripts for `Read` calls on `spill/` paths after the fact.
 
 ### Q8 · What does fail-open cover, and is a failure silent or visible — a hook exception, a timeout, an unwritable spill directory, a disk-full write, an unparseable payload?
 
@@ -219,7 +219,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   nothing to stdout or stderr. If the sizes-only log is writable, one line records the
   failure class; `doctor` reads that log and reports failure counts, and checks the
   spill directory is writable. The hook exits 0 in every case.
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted. Shipped state: every error ends in "print nothing", exit 0, one line on stderr (`trimhook: failed open: …`); a failed spill means no cut (`trimResult` gets `path: null` only when spill is off; a failed spill returns null and the cut still happens — Research should check this).
 
 ### Q9 · Which configuration sources exist and which wins — and may a project checkout change the cap, the per-command caps, or where spill files are written?
 
@@ -237,7 +237,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   log location and `codex.replace`. Per-command caps match on the command's leading
   words, the same shape users know from permission rules. `audit` computes and logs
   what would have been cut and never replaces.
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted. Shipped state: defaults → `~/.trimhook.json` → `TRIMHOOK_CONFIG` → repository file → env, all merged with validation; a repository file may raise the cap or change `perCommand` — there is no tighten-only rule as in hookgate.
 
 ### Q10 · Is the cap the size of what reaches the model (marker included) or the threshold above which a cut happens, and how do the 60/40 split, the stderr floor and `minSaving` interact at the boundary?
 
@@ -256,7 +256,7 @@ true size. A team that already lowered the harness cap gets less from trimhook.
   sizes with stderr guaranteed its floor, then 60/40 head/tail within each stream, on
   line boundaries, rounding towards keeping less rather than exceeding the cap. The
   benchmark script and the hook share the one function that does this.
-- **Answer:** _(to be filled — human)_
+- **Answer:** Default accepted. Shipped state: the cap is what reaches the model, marker included (`trimText` pays for the marker out of the budget); head share 0.6; stderr floor 20% of the cap; `minSaving` 1,500 means a result up to cap + 1,499 is left whole.
 
 ---
 
@@ -288,8 +288,8 @@ Things the ticket might suggest but that we are **not** doing in this task:
 ## Status
 
 - [x] Questions generated
-- [ ] Reviewed by a human
-- [ ] Answers collected (or assumptions explicitly accepted)
+- [x] Reviewed by a human (2026-09-23: the maintainer accepted every default)
+- [x] Answers collected (or assumptions explicitly accepted)
 
 > Next phase: **Research**. The ticket is **not** passed to Research — only the
 > questions and their answers.
