@@ -30,7 +30,7 @@ import { fileURLToPath } from 'node:url'
 import { collapseRuns } from '../bin/lib/collapse.mjs'
 import { DEFAULTS } from '../bin/lib/config.mjs'
 import { commandPrefix } from '../bin/lib/handlers.mjs'
-import { trimResult } from '../bin/lib/trim.mjs'
+import { MARKER_RE, trimResult } from '../bin/lib/trim.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const argv = process.argv.slice(2)
@@ -113,10 +113,10 @@ function runStats(text) {
 // tail begins at one, so removing it reconstructs exactly what the model reads minus
 // the marker. Leaving either newline in would invent a blank line at the junction and
 // count it as repetition that is not there.
-const MARKER = /\n… \[trimhook:[^\]]*\] …\n/
+// The marker's one definition lives beside the code that writes it (TH-22).
 function keptText(text) {
   const t = trimResult({ stdout: text, stderr: '' }, MAIN, '/data/spill/s/t.txt')
-  return t ? t.stdout.replace(MARKER, '') : text
+  return t ? t.stdout.replace(MARKER_RE, '') : text
 }
 
 // One result in, counts out. The text is measured here and referenced nowhere after:

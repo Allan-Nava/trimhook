@@ -10,6 +10,12 @@ export function marker(elided, total, path) {
   return `\n… [trimhook: ${elided.toLocaleString('en-US')} of ${total.toLocaleString('en-US')} characters elided.${where}] …\n`
 }
 
+// The same line, read back. One definition for both directions: the evals find cuts in a
+// transcript by this, and a marker whose wording drifts from it would silently stop being
+// counted — the failure mode being a measurement that quietly reads zero.
+// Groups: 1 elided, 2 total, 3 the spill path when there is one.
+export const MARKER_RE = /\n… \[trimhook: ([\d,]+) of ([\d,]+) characters elided\.(?: Full output: (\S+))?\] …\n/
+
 // Snap a cut index to the nearest newline within `slack` characters, preferring to
 // keep less rather than more so the budget is never exceeded.
 const snapDown = (s, i, slack = 200) => {

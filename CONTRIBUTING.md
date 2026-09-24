@@ -34,6 +34,11 @@ Two measurements, both without a key and without a network:
    nothing else can tell a progress bar from a line per item; it still writes nothing.
    Quote the seed with the verdict so anyone can re-draw the same sample and disagree.
 
+4. **Cost** — `node evals/middles.mjs [--cap N] [--show 12]` asks what the cut hides
+   rather than what it saves: how often a line announcing a failure ends up in the
+   elided middle with no copy in the head or the tail. Counts by default; `--show`
+   prints the lines, because a rate with no examples is not evidence.
+
 The default cap moves only with both numbers in the README, and
 `collapse.strict: false` moves only with the third.
 
