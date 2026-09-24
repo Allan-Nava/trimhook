@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { postToolUse } from '../bin/lib/handlers.mjs'
+import { commandPrefix, postToolUse } from '../bin/lib/handlers.mjs'
 import { env, input, lines, tmp } from './helpers.mjs'
 
 const log = (d) => readFileSync(join(d, 'results.jsonl'), 'utf8').trim().split('\n').map(JSON.parse)
@@ -152,4 +152,21 @@ test('a tool not on the list is left alone, however long its output', async () =
   writeFileSync(join(d, 'user.json'), JSON.stringify({ tools: ['Bash'] }))
   const res = { type: 'text', file: { filePath: '/a/big.ts', content: lines(5000), numLines: 5000, startLine: 1, totalLines: 5000 } }
   assert.equal(await postToolUse(input('', { tool_name: 'Read', tool_response: res }), { env: env(d) }), null)
+})
+
+// Found 2026-09-24 by evals/reads.mjs, which prints these prefixes in a table and showed
+// a filesystem path where a command name belongs. The log is supposed to carry sizes and
+// a command name, never a value — and a leading assignment made the value the name.
+test('the logged command name never carries an assignment or a path', () => {
+  assert.equal(commandPrefix('AWS_SECRET_ACCESS_KEY=wJalrXUt npm run deploy'), 'npm run')
+  assert.equal(commandPrefix('TOKEN=sk-abc123 curl https://api.example.com'), 'curl')
+  assert.equal(commandPrefix('S=/private/tmp/secret-dir; echo hi'), 'echo')
+  assert.equal(commandPrefix('/usr/local/bin/python3 /home/me/private/report.py'), 'python3 report.py')
+  assert.equal(commandPrefix('./scripts/deploy.sh --now'), 'deploy.sh')
+  assert.equal(commandPrefix('X=1'), '(env)', 'nothing but assignments names no command')
+  assert.ok(commandPrefix(`${'a'.repeat(200)} arg`).length <= 32, 'no unbounded token')
+  // The cases that already worked keep working.
+  assert.equal(commandPrefix('cd /repo && git status'), 'git status')
+  assert.equal(commandPrefix('npm test'), 'npm test')
+  assert.equal(commandPrefix('seq 1 5000'), 'seq')
 })

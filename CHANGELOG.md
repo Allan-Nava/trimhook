@@ -6,6 +6,12 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Added
+- `evals/reads.mjs`: what the model did after a cut — read the spill the marker named, or
+  run the same command again. The cost side of the cap, which `report` cannot see and
+  TH-10 needs. `MARKER_RE` is exported from `trim.mjs` so the scan and the marker cannot
+  drift apart (TH-22).
+- `evals/middles.mjs`: does the cut hide the line that says what went wrong? On 287 real
+  cuts, almost never — and TH-13 is dropped on the answer rather than built (TH-13).
 - The cut applies to `Read` and `WebFetch` as well as `Bash`, with the `tools` config key
   to narrow it. Both shapes were read off real transcripts: Read's `file.content` is cut
   with `numLines` and `totalLines` left describing the file, WebFetch's `result` is cut
@@ -18,6 +24,13 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   (TH-12, TH-20).
 
 ### Fixed
+- **The audit log could record a secret.** `commandPrefix` reduced a command to its first
+  word, but a leading assignment makes the first word a value: a command like
+  `AWS_SECRET_ACCESS_KEY=… npm run deploy` wrote the key into `results.jsonl`, and
+  `S=/private/tmp/…; echo` wrote a filesystem path. Leading assignments are now skipped
+  as `cd` hops already were, a program is reduced to its own name rather than its path,
+  and both words are capped. Present since 0.0.1; delete `~/.trimhook/results.jsonl` if
+  you have run commands with inline credentials (TH-23).
 - The log had two homes and the wrong one won. `dataDir()` preferred `CLAUDE_PLUGIN_DATA`,
   which the harness sets only for the hook process, so under a plugin install the hook
   wrote where `trimhook report` could not read: the log was invisible to the single

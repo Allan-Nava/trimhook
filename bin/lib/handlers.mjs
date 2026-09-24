@@ -47,9 +47,28 @@ export async function postToolUse(input, deps = {}) {
 
 // For the log: the command's first word, or first two when the first takes a
 // subcommand — never the whole command, which can carry anything.
+//
+// "Anything" is not hypothetical. A leading assignment makes the first word the value:
+// `AWS_SECRET_ACCESS_KEY=wJalrXUt npm run deploy` logged its key, and
+// `S=/private/tmp/…; echo` logged a path (found 2026-09-24 by evals/reads.mjs, which
+// prints these prefixes in a table). So leading assignments are skipped exactly as `cd`
+// hops are, an absolute path is reduced to the program's own name, and what is left is
+// capped — a token that long is not a command name anyway.
+const LEADING = /^(?:(?:cd\s+\S+|[A-Za-z_][A-Za-z0-9_]*=\S*)\s*(?:&&|;|\n)?\s*)+/
+const MAX = 32
+
 export function commandPrefix(command) {
-  const words = String(command ?? '').trim().replace(/^(?:cd\s+\S+\s*(?:&&|;|\n)\s*)+/, '').split(/\s+/)
-  const first = words[0] ?? ''
+  const words = String(command ?? '')
+    .trim()
+    .replace(LEADING, '')
+    .split(/\s+/)
+  // Everything was assignments: say so rather than logging a value.
+  const head = words[0] ?? ''
+  if (!head) return '(env)'
+  const name = (w) => ((w.split('/').pop() || w).slice(0, MAX))
+  const first = name(head)
   const sub = ['git', 'npm', 'npx', 'pnpm', 'yarn', 'docker', 'kubectl', 'gh', 'cargo', 'go', 'make', 'python', 'python3', 'node', 'pip']
-  return sub.includes(first) && words[1] && !words[1].startsWith('-') ? `${first} ${words[1]}` : first
+  // The subcommand gets the same treatment: `python3 /home/me/private/report.py` is a
+  // path in the log as surely as the interpreter was.
+  return sub.includes(first) && words[1] && !words[1].startsWith('-') ? `${first} ${name(words[1])}` : first
 }

@@ -102,9 +102,38 @@ count of spill files the model actually went back to read.
   that command. Now `TRIMHOOK_DATA` or `~/.trimhook`, nothing else; the marker's spill
   paths are absolute either way, so the model never depended on it.
   <!-- th: prio=high size=S labels=hook ver=main -->
-- [ ] **TH-13 — Smarter cuts for known formats**: a test runner's failures block, a
-  build's error lines, a JSON's shape — kept whole even in the middle, when the pattern
-  is unambiguous. Only with a measured false-positive rate. <!-- th: prio=low size=L labels=hook,enhancement -->
+- [x] **TH-13 — Smarter cuts for known formats**: measured with `evals/middles.mjs`
+  before building, and **dropped**. The premise was that the cut hides the part saying
+  what went wrong. On 287 real cuts (2026-09-24) it does not: 13 carry a line that
+  announces a failure, 10 of those show it in the head or the tail anyway, and the 3
+  where it is hidden are all false positives of the patterns themselves —
+  `error: (error) => {` in a source file, `FAIL="$FAIL …"` in a shell script, a `×` used
+  as a bullet in a diagram. A deliberately over-wide net puts the ceiling at 28 of 287
+  (9.8%); a sample of 12 of those found **one** genuine case, a `gh run view --log` whose
+  `fatal:` and `##[error]` lines sat in the middle. So the real rate is around 1%, and
+  the pattern that would rescue it also pulls in eleven files, greps and READMEs that
+  merely discuss failure — trimhook's corpus is mostly text *about* code, where
+  "announces a failure" and "mentions one" are the same string. The marker already names
+  the spill; whether an elided middle actually costs anything is TH-10's re-read count,
+  not a pattern's. <!-- th: prio=low size=L labels=hook,enhancement ver=dropped -->
+- [x] **TH-22 — Count what a cut costs, not only what it saves**: `evals/reads.mjs`
+  scans the transcripts for cuts and asks what the model did next — read the spill the
+  marker named, or run the same command again. Both are the cost side of the cap that
+  `trimhook report` cannot see, and TH-10 cannot be decided without them. A cut is found
+  by `MARKER_RE`, exported from `trim.mjs` beside the function that writes the marker, so
+  a reworded marker cannot leave the scan silently reading zero; `local.mjs` and
+  `middles.mjs` now share that one definition too. Reads near zero until trimhook has
+  been running for a while, which is what TH-10 is.
+  <!-- th: prio=high size=M labels=benchmark ver=main -->
+- [x] **TH-23 — The log recorded values, not command names**: found the moment TH-22
+  printed its table. `commandPrefix` took the first word, and a leading assignment makes
+  the first word a value — `AWS_SECRET_ACCESS_KEY=… npm run deploy` wrote the key to
+  `results.jsonl`, `S=/private/tmp/… ; echo` wrote a path. Leading assignments are now
+  skipped as `cd` hops already were, a program is reduced to its own name rather than its
+  path, both words are capped at 32 characters, and a command that is nothing but
+  assignments logs `(env)`. This is rule 4 of `CLAUDE.md` — sizes only, never the output
+  — which the log had been quietly breaking since 0.0.1.
+  <!-- th: prio=high size=S labels=hook ver=main -->
 - [ ] **TH-14 — Social preview and brand assets**: the OG card rendered from an HTML
   source with headless Chrome, as qrspi and hookgate do. <!-- th: prio=low size=S labels=docs -->
 
