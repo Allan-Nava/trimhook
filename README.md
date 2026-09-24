@@ -9,12 +9,13 @@ one line that says how much is missing and **where the whole output is**, and lo
 saved. Nothing is decided by a model, nothing leaves the machine, and when anything goes
 wrong the model sees exactly what it would have seen without the plugin.
 
-> **Status: 0.1.0, measured on transcripts, not yet on live sessions.** The hook, the
-> spill files, `doctor` and `report` are in and released. The number that matters — what
-> it saves on real sessions, and whether a head-and-tail ever hid something the model
-> needed — is measured below on local transcripts only; the live week (TH-10) is still
-> open, and until it lands the default cap is a reasoned choice rather than a measured
-> one.
+> **Status: 0.1.0. The mechanism is verified live; the numbers are still from
+> transcripts.** The hook, the spill files, `doctor` and `report` are in and released,
+> and a live Claude Code session on 2026-09-24 confirmed the harness accepts the
+> replacement for `Bash` and for `Read`. What is still unmeasured is the part only time
+> can give: what it saves over a week of real work, and whether a head-and-tail ever hid
+> something the model needed (TH-10). Until that lands the default cap is a reasoned
+> choice rather than a measured one.
 
 ## Why a hook and not a setting
 
@@ -27,9 +28,9 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
 - **Keeps the tail.** The last lines of a build, a test run or a log are usually the ones
   that matter; 60% of the budget goes to the head, 40% to the tail, cuts fall on line
   boundaries.
-- **Spills the whole output to a file** under the plugin's data directory and names it in
-  the elision marker, so the model can `Read` the part it did not see, on demand, instead
-  of re-running the command.
+- **Spills the whole output to a file** under `~/.trimhook` and names it in the elision
+  marker, so the model can `Read` the part it did not see, on demand, instead of
+  re-running the command.
 - **Measures.** One JSON line per result, sizes only, and `trimhook report` prints what
   was saved, by command.
 
@@ -37,7 +38,7 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
 
 | Event | Match | Decision | Effect |
 |---|---|---|---|
-| `PostToolUse` | `Bash` | none — the command has already run | If `stdout + stderr` exceed the cap by at least `minSaving`, the result is replaced by head + marker + tail (`updatedToolOutput` on Claude Code; `decision: block` with the trimmed text as the feedback on Codex, opt-in until verified live). Below the cap, or on an image result, or on any error: no output, the harness proceeds unchanged. |
+| `PostToolUse` | `Bash`, `Read`, `WebFetch` | none — the tool has already run | If `stdout + stderr` exceed the cap by at least `minSaving`, the result is replaced by head + marker + tail (`updatedToolOutput` on Claude Code; `decision: block` with the trimmed text as the feedback on Codex, opt-in until verified live). Below the cap, or on an image result, or on any error: no output, the harness proceeds unchanged. |
 
 The marker reads, verbatim:
 
@@ -54,10 +55,12 @@ There is no fail-closed mode, because there is nothing to protect against here, 
 tokens to save.
 
 **Nothing leaves the machine.** trimhook makes no network request. The whole output is
-written to a file with owner-only permissions under the plugin's data directory
-(`CLAUDE_PLUGIN_DATA`, `PLUGIN_DATA`, or `~/.trimhook`), pruned after seven days; the log
-keeps sizes and the command's first word or two, never the output. The spill file holds
-whatever the command printed — treat that directory as you treat your shell history.
+written to a file with owner-only permissions under `~/.trimhook` (or `TRIMHOOK_DATA`),
+pruned after seven days; the log keeps sizes and the command's first word or two, never
+the output. One home on purpose: the harness's own plugin data directory is set for the
+hook process alone, and a log `trimhook report` cannot find is not a log. The spill file
+holds whatever the command printed — treat that directory as you treat your shell
+history.
 
 ## Install
 
@@ -97,7 +100,8 @@ trimhook never sees the rest.
   "spill": true,
   "spillTtlDays": 7,
   "codex": { "replace": false },
-  "collapse": { "enabled": true, "minRun": 3, "strict": true }
+  "collapse": { "enabled": true, "minRun": 3, "strict": true },
+  "tools": ["Bash", "Read", "WebFetch"]
 }
 ```
 
@@ -105,6 +109,14 @@ trimhook never sees the rest.
 report before the effect. `perCommand` keys are the command's first word or first two
 (`cd …` hops skipped), the more specific winning. Every value is validated; a bad one is
 reported by `doctor` and the default takes its place.
+
+`tools` is the list trimhook will cut. A tool is on it only when its output shape has
+been read off real transcripts — the harness ignores a replacement that does not match
+the tool's own shape, so an unknown shape would be a saving the log claims and the model
+never gets. `perCommand` keys work for them too: `{ "Read": 20000 }` gives Read its own
+cap. For Bash the whole `stdout`/`stderr` pair is cut; for Read it is `file.content`,
+with `numLines` and `totalLines` left describing the file rather than the excerpt; for
+WebFetch it is `result`, beside the status and timing that describe the fetch.
 
 `collapse` folds a run of `minRun` or more identical lines down to its first line and a
 count, before the cut, so the budget buys distinct content. `strict` compares lines byte
@@ -135,6 +147,31 @@ list of what gets cut — whole-file reads and hand-rolled loops, not test runs.
 default cap is the open question the design phase carries (`thoughts/`), and the live
 measurement (TH-10) is what settles it: `trimhook report` on a week of real work, plus a
 count of how often the model went and read a spill file.
+
+### It is not only Bash
+
+Bash is 28.7 M of the 30 M characters the tools printed, but not the worst offender per
+result. Of what each tool prints, this is the share the cut would take at the default cap
+(2026-09-23):
+
+| Tool | Results | Characters | Over the cap | Saved | Share of its own |
+|---|---:|---:|---:|---:|---:|
+| Bash | 28,761 | 28,666,550 | 386 | 1,930,062 | 6.7% |
+| Read | 880 | 2,651,454 | 94 | 704,824 | 26.6% |
+| WebFetch | 139 | 1,082,613 | 24 | 675,065 | 62.4% |
+| Agent | 49 | 205,494 | 6 | 103,211 | 50.2% |
+| Edit, Write, WebSearch, … | 2,565 | 578,000 | 0 | 0 | 0% |
+
+Read and WebFetch together add 1.38 M characters to Bash's 1.93 M — 72% more, from 1,019
+results against Bash's 28,761. A fetched page is long nearly every time it is long at
+all; a shell command usually is not. `Agent` is left out for now: its result is a list of
+message blocks rather than one text field, and a shape guessed wrong is a replacement the
+harness discards. Everything below it in the table never crosses the cap at all.
+
+Verified live on 2026-09-24, which is the only way this can be verified: a `Read` of a
+23,715-character file came back at 7,923 with the marker inside `file.content`, and the
+log recorded `Read trimmed elided=15,986`. Claude Code accepts `updatedToolOutput` for
+`Read`, not only for `Bash`.
 
 ### The same thing twice
 

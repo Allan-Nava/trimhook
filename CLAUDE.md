@@ -5,9 +5,9 @@ Guidance for Claude Code when working in this repository.
 ## What this repo is
 
 `trimhook` is a **Claude Code plugin** — and a Codex CLI plugin from the same files —
-whose whole product is one `PostToolUse` hook on `Bash`: when a shell result is longer
-than a cap, the model gets its head and tail plus one marker line naming a file that
-holds the whole output. No model is consulted, nothing leaves the machine, and every
+whose whole product is one `PostToolUse` hook on `Bash`, `Read` and `WebFetch`: when a
+tool result is longer than a cap, the model gets its head and tail plus one marker line
+naming a file that holds the whole output. No model is consulted, nothing leaves the machine, and every
 failure path is "print nothing". It is modelled on
 [hookgate](https://github.com/Allan-Nava/hookgate) and [qrspi](https://github.com/Allan-Nava/qrspi):
 dependency-free, manifests in step, releases by tag, BACKLOG.md as the single source of

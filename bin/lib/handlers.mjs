@@ -11,10 +11,12 @@ export async function postToolUse(input, deps = {}) {
   const { cfg } = loadConfig(input.cwd ?? process.cwd(), deps.env)
   const harness = detectHarness(deps.env, input)
   const dir = dataDir(deps.env)
-  if (input.tool_name !== 'Bash') return null
+  if (!cfg.tools.includes(input.tool_name)) return null
   const res = readResponse(input.tool_response)
   if (!res) return null
-  const command = input.tool_input?.command ?? ''
+  // Only Bash has a command; for the others the tool's own name is what the log and the
+  // per-command caps key on, so `perCommand: { "Read": 20000 }` works the same way.
+  const command = input.tool_name === 'Bash' ? (input.tool_input?.command ?? '') : input.tool_name
   const cap = capFor(cfg, command)
   const path = cfg.spill && cfg.mode === 'trim' ? spill(dir, input.session_id, input.tool_use_id, res.stdout, res.stderr) : null
   const before = res.stdout.length + res.stderr.length
@@ -25,7 +27,7 @@ export async function postToolUse(input, deps = {}) {
   const collapsed = col ? col.out.collapsed + col.err.collapsed : 0
   const body = collapsed ? { stdout: col.out.text, stderr: col.err.text } : res
   const t = trimResult(body, { cap, head: cfg.head, minSaving: cfg.minSaving }, path)
-  const record = { at: new Date(deps.now()).toISOString(), session: input.session_id ?? null, harness, mode: cfg.mode, command: commandPrefix(command), before, cap }
+  const record = { at: new Date(deps.now()).toISOString(), session: input.session_id ?? null, harness, mode: cfg.mode, tool: input.tool_name, command: commandPrefix(command), before, cap }
   // Collapsing alone can bring a result under the cap, and then there is nothing left to
   // elide — but there is still a shorter result to hand back.
   const after = t ? t.after : body.stdout.length + body.stderr.length

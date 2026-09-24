@@ -1,8 +1,8 @@
 {
-  "at": "2026-09-23T14:42:48.983Z",
+  "at": "2026-09-23T15:14:00.050Z",
   "claude": {
     "sessions": 142,
-    "results": 28626
+    "results": 28785
   },
   "codex": {
     "sessions": 8,
@@ -11,12 +11,12 @@
   "table": [
     {
       "cap": 4000,
-      "results": 28641,
-      "trimmed": 806,
-      "before": 28653544,
-      "after": 23978838,
-      "saved": 4674706,
-      "savedShare": 0.16314582238064512,
+      "results": 28800,
+      "trimmed": 807,
+      "before": 28758748,
+      "after": 24080473,
+      "saved": 4678275,
+      "savedShare": 0.16267311080440636,
       "top": [
         [
           "cat",
@@ -54,12 +54,12 @@
     },
     {
       "cap": 8000,
-      "results": 28641,
+      "results": 28800,
       "trimmed": 289,
-      "before": 28653544,
-      "after": 26692668,
+      "before": 28758748,
+      "after": 26797872,
       "saved": 1960876,
-      "savedShare": 0.0684339780098406,
+      "savedShare": 0.06818363581057145,
       "top": [
         [
           "cat",
@@ -97,12 +97,12 @@
     },
     {
       "cap": 12000,
-      "results": 28641,
+      "results": 28800,
       "trimmed": 134,
-      "before": 28653544,
-      "after": 27696143,
+      "before": 28758748,
+      "after": 27801347,
       "saved": 957401,
-      "savedShare": 0.03341300468800648,
+      "savedShare": 0.033290774688800776,
       "top": [
         [
           "cat",
@@ -140,12 +140,12 @@
     },
     {
       "cap": 16000,
-      "results": 28641,
+      "results": 28800,
       "trimmed": 67,
-      "before": 28653544,
-      "after": 28186121,
+      "before": 28758748,
+      "after": 28291325,
       "saved": 467423,
-      "savedShare": 0.016312921012493254,
+      "savedShare": 0.016253245794983842,
       "top": [
         [
           "cat",
@@ -184,19 +184,19 @@
   ],
   "repetition": {
     "cap": 8000,
-    "chars": 28653544,
-    "kept": 26656504,
-    "keptStrict": 26613357,
-    "keptMasked": 25964330,
-    "repeated": 1077042,
-    "blank": 770,
-    "runs": 8196,
-    "keptRepeated": 1013417,
-    "keptBlank": 758,
+    "chars": 28758748,
+    "kept": 26761708,
+    "keptStrict": 26716569,
+    "keptMasked": 26059236,
+    "repeated": 1090723,
+    "blank": 775,
+    "runs": 8307,
+    "keptRepeated": 1027098,
+    "keptBlank": 763,
     "duplicates": {
-      "count": 1056,
-      "chars": 100346,
-      "kept": 100346,
+      "count": 1063,
+      "chars": 100561,
+      "kept": 100561,
       "worth": 93,
       "worthKept": 78185
     }

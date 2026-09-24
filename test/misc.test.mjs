@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { readFileSync, utimesSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { capFor, loadConfig } from '../bin/lib/config.mjs'
 import { doctor } from '../bin/lib/doctor.mjs'
-import { detectHarnessSignal, readResponse } from '../bin/lib/harness.mjs'
+import { dataDir, detectHarnessSignal, readResponse, replacementOutput } from '../bin/lib/harness.mjs'
 import { render, summarize } from '../bin/lib/report.mjs'
 import { pruneSpill, spill } from '../bin/lib/store.mjs'
 import { env, input, lines, tmp } from './helpers.mjs'
@@ -41,11 +42,40 @@ test('harness detection: own signals before ambient ones', () => {
 })
 
 test('readResponse understands both harnesses and refuses images', () => {
-  assert.deepEqual(readResponse('text'), { stdout: 'text', stderr: '', rest: null })
+  assert.deepEqual(readResponse('text'), { stdout: 'text', stderr: '', rest: null, shape: 'text' })
   assert.equal(readResponse({ stdout: 'a', stderr: 'b', interrupted: false, isImage: false }).stderr, 'b')
   assert.equal(readResponse({ output: 'o' }).stdout, 'o')
   assert.equal(readResponse({ isImage: true, stdout: 'x' }), null)
   assert.equal(readResponse(null), null)
+})
+
+// The shapes are the ones the transcripts actually carry (2026-09-23), not invented ones.
+test('readResponse finds the text in a Read and a WebFetch, and refuses an image Read', () => {
+  const read = { type: 'text', file: { filePath: '/a/b.ts', content: 'const x = 1\n', numLines: 1, startLine: 1, totalLines: 400 } }
+  assert.equal(readResponse(read).stdout, 'const x = 1\n')
+  assert.equal(readResponse(read).shape, 'file')
+  assert.equal(readResponse({ type: 'image', file: { base64: 'AAAA', type: 'png' } }), null)
+  assert.equal(readResponse({ type: 'text', file: { base64: 'AAAA', content: 'x' } }), null)
+
+  const fetched = { bytes: 23921, code: 200, codeText: 'OK', result: 'the page text', durationMs: 2113, url: 'https://example.com' }
+  assert.equal(readResponse(fetched).stdout, 'the page text')
+  assert.equal(readResponse(fetched).shape, 'result')
+})
+
+test('a replacement changes the field that holds the text and nothing else', () => {
+  const read = { type: 'text', file: { filePath: '/a/b.ts', content: 'long', numLines: 1, startLine: 1, totalLines: 400 } }
+  const out = replacementOutput('claude', readResponse(read), 'cut', '', 'note').hookSpecificOutput.updatedToolOutput
+  assert.deepEqual(out, { type: 'text', file: { filePath: '/a/b.ts', content: 'cut', numLines: 1, startLine: 1, totalLines: 400 } })
+
+  const fetched = { bytes: 23921, code: 200, codeText: 'OK', result: 'long', durationMs: 2113, url: 'https://example.com' }
+  const out2 = replacementOutput('claude', readResponse(fetched), 'cut', '', 'note').hookSpecificOutput.updatedToolOutput
+  assert.deepEqual(out2, { ...fetched, result: 'cut' })
+
+  // Bash keeps the fields the harness sends that trimhook knows nothing about.
+  const bash = { stdout: 'long', stderr: '', interrupted: false, isImage: false, noOutputExpected: false }
+  const out3 = replacementOutput('claude', readResponse(bash), 'cut', '', 'note').hookSpecificOutput.updatedToolOutput
+  assert.equal(out3.noOutputExpected, false)
+  assert.equal(out3.stdout, 'cut')
 })
 
 test('spill files are pruned after the TTL', () => {
@@ -106,6 +136,17 @@ test('e2e: a long result comes back trimmed in Claude Code shape; garbage stdin 
   const s = await run(['post-tool-use'], JSON.stringify(input('fine\n')), env(d))
   assert.equal(s.stdout, '')
   const rep = await run(['report'], '', env(d))
-  assert.match(rep.stdout, /2 shell results/)
+  assert.match(rep.stdout, /2 tool results/)
   assert.match(rep.stdout, /trimmed 1/)
+})
+
+// Regression for 2026-09-24: the hook ran under Claude Code, wrote its log to the
+// plugin data directory the harness sets for the hook process alone, and `trimhook
+// report` in a terminal answered "no results logged yet". A log nobody can read is not
+// a log.
+test('the data dir ignores the harness plugin data dir, which only the hook process sees', () => {
+  assert.equal(dataDir({ CLAUDE_PLUGIN_DATA: '/plugins/data/trimhook', HOME: '/home/a' }), join(homedir(), '.trimhook'))
+  assert.equal(dataDir({ PLUGIN_DATA: '/codex/data/trimhook' }), join(homedir(), '.trimhook'))
+  assert.equal(dataDir({ TRIMHOOK_DATA: '/tmp/elsewhere' }), '/tmp/elsewhere')
+  assert.equal(dataDir({}), join(homedir(), '.trimhook'))
 })

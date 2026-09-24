@@ -28,6 +28,7 @@ export function doctor({ cwd = process.cwd(), env = process.env } = {}) {
   ok(existsSync(path) ? `repository config: ${path}` : `repository config: none (${path})`)
   for (const p of problems) bad(`config: ${p}`)
   ok(`mode ${cfg.mode} · cap ${cfg.cap} · head ${cfg.head} · minSaving ${cfg.minSaving} · spill ${cfg.spill} (${cfg.spillTtlDays} days) · codex.replace ${cfg.codex.replace}`)
+  ok(`tools ${cfg.tools.join(', ')}`)
   ok(`collapse ${cfg.collapse.enabled ? `on, ${cfg.collapse.strict ? 'strict' : 'masked'}, runs of ${cfg.collapse.minRun}+` : 'off'}`)
   if (Object.keys(cfg.perCommand).length) ok(`per-command caps: ${Object.entries(cfg.perCommand).map(([c, n]) => `${c}=${n}`).join(', ')}`)
   // The harness has its own flat cut; trimhook can only see what survives it.

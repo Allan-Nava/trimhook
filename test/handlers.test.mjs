@@ -36,7 +36,8 @@ test('a long result is replaced in Claude Code shape, spilled to a 0600 file the
 
 test('other tools, images and unknown response shapes fall through', async () => {
   const d = tmp()
-  assert.equal(await postToolUse(input(lines(5000), { tool_name: 'Read' }), { env: env(d) }), null)
+  assert.equal(await postToolUse(input(lines(5000), { tool_name: 'Glob' }), { env: env(d) }), null)
+  assert.equal(await postToolUse(input(lines(5000), { tool_name: 'Read', tool_response: { type: 'image', file: { base64: 'AAAA' } } }), { env: env(d) }), null)
   assert.equal(await postToolUse(input(lines(5000), { tool_response: { stdout: lines(5000), isImage: true } }), { env: env(d) }), null)
   assert.equal(await postToolUse(input(lines(5000), { tool_response: 42 }), { env: env(d) }), null)
   assert.equal(await postToolUse(input(lines(5000), { tool_response: { weird: true } }), { env: env(d) }), null)
@@ -113,4 +114,42 @@ test('collapsing is off when the config says so, and never fires under the cap',
   const d2 = tmp()
   assert.equal(await postToolUse(input('short\n'.repeat(3)), { env: env(d2) }), null)
   assert.deepEqual(log(d2).map((r) => r.outcome), ['kept'])
+})
+
+test('a long Read is cut inside the file content, and the rest of the shape is untouched', async () => {
+  const d = tmp()
+  const content = lines(5000)
+  const res = { type: 'text', file: { filePath: '/a/big.ts', content, numLines: 5000, startLine: 1, totalLines: 5000 } }
+  const out = await postToolUse(input('', { tool_name: 'Read', tool_input: { file_path: '/a/big.ts' }, tool_response: res }), { env: env(d) })
+  const u = out.hookSpecificOutput.updatedToolOutput
+  assert.equal(u.type, 'text')
+  assert.equal(u.file.filePath, '/a/big.ts')
+  // numLines and totalLines describe the file, not the excerpt: the marker says what is
+  // missing, and rewriting them would be a second, quieter lie.
+  assert.equal(u.file.totalLines, 5000)
+  assert.ok(u.file.content.length <= 8000)
+  assert.match(u.file.content, /… \[trimhook: [\d,]+ of [\d,]+ characters elided/)
+  const [r] = log(d)
+  assert.equal(r.tool, 'Read')
+  assert.equal(r.command, 'Read')
+  assert.equal(readFileSync(r.spill, 'utf8'), content)
+})
+
+test('a long WebFetch is cut inside the fetched text, with the status and timing kept', async () => {
+  const d = tmp()
+  const res = { bytes: 999, code: 200, codeText: 'OK', result: lines(5000), durationMs: 2113, url: 'https://example.com/x' }
+  const out = await postToolUse(input('', { tool_name: 'WebFetch', tool_input: { url: 'https://example.com/x' }, tool_response: res }), { env: env(d) })
+  const u = out.hookSpecificOutput.updatedToolOutput
+  assert.equal(u.code, 200)
+  assert.equal(u.url, 'https://example.com/x')
+  assert.equal(u.durationMs, 2113)
+  assert.ok(u.result.length <= 8000)
+  assert.equal(log(d)[0].tool, 'WebFetch')
+})
+
+test('a tool not on the list is left alone, however long its output', async () => {
+  const d = tmp()
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ tools: ['Bash'] }))
+  const res = { type: 'text', file: { filePath: '/a/big.ts', content: lines(5000), numLines: 5000, startLine: 1, totalLines: 5000 } }
+  assert.equal(await postToolUse(input('', { tool_name: 'Read', tool_response: res }), { env: env(d) }), null)
 })

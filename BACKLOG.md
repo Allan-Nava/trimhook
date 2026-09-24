@@ -78,10 +78,30 @@ count of spill files the model actually went back to read.
 
 ## v0.2.0 — Beyond Bash <!-- ms: phase=next -->
 
-- [ ] **TH-12 — Other tools**: `Read` of a large file, `WebFetch`, `Grep` results — the
-  same cut where the tool's output shape allows `updatedToolOutput`; measured first, as
-  TH-6 did for Bash (`Read` is 1.6 M of the 30 M characters in the same transcripts).
-  <!-- th: prio=med size=M labels=hook,benchmark -->
+- [x] **TH-12 — Other tools**: measured first, as TH-6 did for Bash. Of what each tool
+  prints, the cut would take 6.7% of Bash's, 26.6% of Read's, 62.4% of WebFetch's, 50.2%
+  of Agent's, and nothing at all from anything else (2026-09-23). Read and WebFetch add
+  1.38 M characters to Bash's 1.93 M, from 1,019 results against 28,761. Both shapes read
+  off real transcripts — Read cuts `file.content`, WebFetch cuts `result`, every other
+  field carried through — and the matcher now reads `Bash|Read|WebFetch`. `Agent` is left
+  out: its result is a list of message blocks, not one text field.
+  <!-- th: prio=med size=M labels=hook,benchmark ver=main -->
+- [x] **TH-20 — Verify the Read and WebFetch replacement live**: done 2026-09-24 in a
+  Claude Code session with the checkout installed as a plugin. A `Read` of 23,715
+  characters came back at 7,923 with the marker inside `file.content` and the whole file
+  in the spill; the log recorded `Read trimmed elided=15,986`, and the model demonstrably
+  received the cut text — so the saving is real, not a replacement refused in silence. A
+  `seq` of 11,392 characters confirmed Bash in the same session. WebFetch is still only
+  proven against its recorded shape, not live.
+  <!-- th: prio=high size=S labels=hook,tests ver=main -->
+- [x] **TH-21 — The log needs one home**: found while verifying TH-20. `dataDir()`
+  preferred `CLAUDE_PLUGIN_DATA`, which the harness sets for the hook process alone, so
+  the hook wrote to `~/.claude/plugins/data/trimhook-inline` while `trimhook report` in a
+  terminal read `~/.trimhook` and answered "no results logged yet" — the log was
+  unreadable by the one command that exists to read it, and TH-10 is a week of exactly
+  that command. Now `TRIMHOOK_DATA` or `~/.trimhook`, nothing else; the marker's spill
+  paths are absolute either way, so the model never depended on it.
+  <!-- th: prio=high size=S labels=hook ver=main -->
 - [ ] **TH-13 — Smarter cuts for known formats**: a test runner's failures block, a
   build's error lines, a JSON's shape — kept whole even in the middle, when the pattern
   is unambiguous. Only with a measured false-positive rate. <!-- th: prio=low size=L labels=hook,enhancement -->
