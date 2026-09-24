@@ -4,14 +4,14 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**23 items · 19 shipped · 4 open · 3 milestones.**
+**23 items · 20 shipped · 3 open · 3 milestones.**
 
 ## At a glance
 
 | Milestone | Phase | Progress | Open | Shipped |
 |---|---|---|---|---|
 | **v0.1.0 — One cut, one number** | now | `#######...` 73% | 3 | 8 |
-| **v0.2.0 — Beyond Bash** | next | `#########.` 86% | 1 | 6 |
+| **v0.2.0 — Beyond Bash** | next | `##########` 100% | 0 | 7 |
 | **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 5 |
 
 ## v0.1.0 — One cut, one number
@@ -36,7 +36,7 @@
 - [x] **TH-13** — Smarter cuts for known formats · low · L · hook, enhancement · `dropped`
 - [x] **TH-22** — Count what a cut costs, not only what it saves · high · M · benchmark · `main`
 - [x] **TH-23** — The log recorded values, not command names · high · S · hook · `main`
-- [ ] **TH-14** — Social preview and brand assets · low · S · docs
+- [x] **TH-14** — Social preview and brand assets · low · S · docs · `main`
 
 ## v0.3.0 — Less of the same
 

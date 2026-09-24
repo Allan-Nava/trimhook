@@ -134,8 +134,12 @@ count of spill files the model actually went back to read.
   assignments logs `(env)`. This is rule 4 of `CLAUDE.md` — sizes only, never the output
   — which the log had been quietly breaking since 0.0.1.
   <!-- th: prio=high size=S labels=hook ver=main -->
-- [ ] **TH-14 — Social preview and brand assets**: the OG card rendered from an HTML
-  source with headless Chrome, as qrspi and hookgate do. <!-- th: prio=low size=S labels=docs -->
+- [x] **TH-14 — Social preview and brand assets**: `assets/social-preview.html` rendered
+  to `assets/social-preview.png` by `scripts/social.mjs` with headless Chrome, 1280×640
+  at 2×, no dependency added. The card shows the marker line itself, because that line is
+  the product. The mark is `assets/logo.svg` referenced rather than copied, so it cannot
+  drift from the favicon; `check` now fails when the PNG the meta tags name is missing,
+  which it had been for weeks. <!-- th: prio=low size=S labels=docs ver=main -->
 
 ## v0.3.0 — Less of the same <!-- ms: phase=later -->
 

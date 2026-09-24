@@ -206,8 +206,8 @@ const html = `<!doctype html>
 <meta property="og:title" content="${esc(headline)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:image" content="${SITE}assets/social-preview.png">
-<meta property="og:image:width" content="1280">
-<meta property="og:image:height" content="640">
+<meta property="og:image:width" content="2560">
+<meta property="og:image:height" content="1280">
 <meta property="og:image:alt" content="${esc(headline)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(headline)}">

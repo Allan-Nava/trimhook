@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>trimhook — social preview</title>
+<!--
+  The source of assets/social-preview.png, rendered by scripts/social.mjs with headless
+  Chrome. Open it in a browser to work on it: what you see at 1280×640 is the card.
+
+  It borrows nothing it cannot prove. The mark is assets/logo.svg itself, referenced —
+  not a copy — so the card cannot drift from the favicon and the README. The colours are
+  the site's dark theme. The marker line is the real one, wording and all, because the
+  marker is the product: everything else trimhook does is arithmetic around that line.
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 640px; }
+  body {
+    background: #100f0e;
+    color: #ece8e1;
+    font: 400 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 88px;
+    position: relative;
+    overflow: hidden;
+  }
+  /* A wash of the brand green from the corner the eye lands on last. */
+  body::after {
+    content: "";
+    position: absolute;
+    right: -220px;
+    bottom: -280px;
+    width: 720px;
+    height: 720px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(127, 208, 166, 0.13), transparent 62%);
+  }
+  header { display: flex; align-items: center; gap: 22px; margin-bottom: 34px; }
+  header img { width: 76px; height: 76px; border-radius: 17px; }
+  h1 { font-size: 62px; letter-spacing: -0.035em; font-weight: 650; line-height: 1; }
+  h1 span { color: #7fd0a6; }
+  /* The break is placed, not left to the box: "trimmed at the / source" splits the one
+     phrase that has to arrive whole. */
+  p.lede { font-size: 27px; line-height: 1.35; color: #9b948a; }
+  p.lede strong { color: #ece8e1; font-weight: 600; }
+  .cut {
+    position: absolute;
+    right: 88px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 470px;
+    background: #171614;
+    border: 1px solid #2c2925;
+    border-radius: 14px;
+    padding: 22px 24px;
+    font: 400 15px/1.85 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    color: #6b665e;
+  }
+  .cut b { color: #ece8e1; font-weight: 400; }
+  .cut .marker { color: #7fd0a6; display: block; margin: 10px -6px; padding: 8px 6px; border-top: 1px dashed #2c2925; border-bottom: 1px dashed #2c2925; font-size: 13.5px; line-height: 1.6; }
+  footer {
+    position: absolute;
+    left: 88px;
+    bottom: 54px;
+    font: 500 15px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.02em;
+    color: #6b665e;
+  }
+  footer span { color: #7fd0a6; }
+</style>
+</head>
+<body>
+  <header>
+    <img src="logo.svg" alt="">
+    <h1>trim<span>hook</span></h1>
+  </header>
+  <p class="lede">Tool output trimmed<br><strong>at the source</strong>.</p>
+
+  <div class="cut">
+    <b>$ npm test</b><br>
+    <b>&gt; node --test</b><br>
+    ✔ the cut is arithmetic<br>
+    <span class="marker">… [trimhook: 21,540 of 29,540<br>characters elided. Full output:<br>~/.trimhook/spill/…] …</span>
+    ℹ pass 37<br>
+    <b>ℹ fail 0</b>
+  </div>
+
+  <footer>Claude Code <span>·</span> Codex CLI <span>·</span> no model, nothing leaves the machine</footer>
+</body>
+</html>

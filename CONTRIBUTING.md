@@ -42,6 +42,24 @@ Two measurements, both without a key and without a network:
 The default cap moves only with both numbers in the README, and
 `collapse.strict: false` moves only with the third.
 
+## The social card
+
+`assets/social-preview.png` is the image every link to the site unfurls into, and
+`site/build.mjs` names it in `og:image` and `twitter:image`. It is generated, not drawn:
+
+```bash
+npm run build:social      # assets/social-preview.html -> assets/social-preview.png
+```
+
+The source is an ordinary HTML file — open it in a browser to work on it, what you see at
+1280×640 is the card — rendered by headless Chrome at 2× and committed. The mark on it is
+`assets/logo.svg` referenced by path, so the card cannot drift from the favicon. Chrome is
+found, not installed; set `CHROME=` if it lives somewhere unusual. `trimhook check` fails
+when the PNG is missing, because a card that 404s unfurls blank.
+
+GitHub's own repository social preview is a separate thing, set by hand under Settings →
+General → Social preview; the same PNG is the one to upload.
+
 ## Backlog, roadmap, issues
 
 `BACKLOG.md` is the single source of truth; `ROADMAP.md` is generated from it and the
