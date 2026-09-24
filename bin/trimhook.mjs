@@ -100,6 +100,12 @@ function check() {
     if (!/BASH_MAX_OUTPUT_LENGTH/.test(readme)) fail("README.md must name the harness's own cap (BASH_MAX_OUTPUT_LENGTH) and how trimhook relates to it")
   }
   for (const m of ['config.mjs', 'harness.mjs', 'trim.mjs', 'store.mjs', 'handlers.mjs', 'report.mjs', 'doctor.mjs']) if (!existsSync(join(ROOT, 'bin', 'lib', m))) fail(`bin/lib/${m} is missing`)
+  // The site's og:image named this file for weeks before it existed, and a card that
+  // 404s is worse than none: every link unfurls blank. Regenerate with `npm run
+  // build:social` after touching the logo or assets/social-preview.html.
+  if (existsSync(join(ROOT, 'site', 'build.mjs')) && read('site/build.mjs').includes('social-preview.png') && !existsSync(join(ROOT, 'assets', 'social-preview.png'))) {
+    fail('site/build.mjs names assets/social-preview.png, which does not exist — run npm run build:social')
+  }
   if (errors.length) {
     for (const e of errors) console.error(`✗ ${e}`)
     process.exit(1)

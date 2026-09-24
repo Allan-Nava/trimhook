@@ -22,7 +22,8 @@
   "scripts": {
     "test": "node bin/trimhook.mjs check && node --test",
     "backlog": "node scripts/backlog.mjs lint && node scripts/backlog.mjs check",
-    "build:site": "node site/build.mjs"
+    "build:site": "node site/build.mjs",
+    "build:social": "node scripts/social.mjs"
   },
   "repository": {
     "type": "git",
@@ -30,7 +31,16 @@
   },
   "homepage": "https://allan-nava.github.io/trimhook/",
   "bugs": "https://github.com/Allan-Nava/trimhook/issues",
-  "keywords": ["claude-code", "codex", "hooks", "plugin", "token-efficiency", "context-engineering", "tool-output", "truncation"],
+  "keywords": [
+    "claude-code",
+    "codex",
+    "hooks",
+    "plugin",
+    "token-efficiency",
+    "context-engineering",
+    "tool-output",
+    "truncation"
+  ],
   "author": "Allan Nava (https://github.com/Allan-Nava)",
   "license": "MIT",
   "devDependencies": {

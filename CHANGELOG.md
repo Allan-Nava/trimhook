@@ -6,6 +6,11 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Added
+- A social preview card: `assets/social-preview.html` rendered to
+  `assets/social-preview.png` by `npm run build:social`, headless Chrome and no new
+  dependency. `site/build.mjs` had named that file in `og:image` since before it existed,
+  so every link to the site unfurled blank; `check` now fails if it goes missing again.
+  The declared `og:image` dimensions now match the file, 2560×1280 (TH-14).
 - `evals/reads.mjs`: what the model did after a cut — read the spill the marker named, or
   run the same command again. The cost side of the cap, which `report` cannot see and
   TH-10 needs. `MARKER_RE` is exported from `trim.mjs` so the scan and the marker cannot
