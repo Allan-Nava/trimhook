@@ -22,8 +22,15 @@ export function detectHarnessSignal(env = process.env, input = {}) {
 }
 export const detectHarness = (env, input) => detectHarnessSignal(env, input).harness
 
+// One home, and deliberately not the harness's plugin data directory. The harness sets
+// CLAUDE_PLUGIN_DATA for the hook process only, so a log written there is invisible to
+// `trimhook report` run from a terminal — which is the only thing that log is for, and
+// the command CONTRIBUTING tells you to run for a week to settle the default cap (TH-10).
+// Measured 2026-09-24: the hook wrote to ~/.claude/plugins/data/trimhook-inline while
+// `report` read ~/.trimhook and said "no results logged yet". The spill paths in the
+// marker are absolute either way, so the model never depended on this.
 export function dataDir(env = process.env) {
-  return env.TRIMHOOK_DATA ?? env.CLAUDE_PLUGIN_DATA ?? env.PLUGIN_DATA ?? join(homedir(), '.trimhook')
+  return env.TRIMHOOK_DATA ?? join(homedir(), '.trimhook')
 }
 
 // The tool_response shapes, read off 2026-09-23 transcripts rather than guessed:

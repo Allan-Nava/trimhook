@@ -13,7 +13,15 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   1.38 M characters against Bash's 1.93 M on the local corpus. The matcher in both hook
   manifests is now `Bash|Read|WebFetch` (TH-12).
 - `trimhook report` breaks its saving down by tool, and the log record carries the tool
-  name — the place a replacement the harness silently refused would show up (TH-20).
+  name — the place a replacement the harness silently refused would show up. Verified
+  live on 2026-09-24: Claude Code accepts the replacement for `Read` as well as `Bash`
+  (TH-12, TH-20).
+
+### Fixed
+- The log had two homes and the wrong one won. `dataDir()` preferred `CLAUDE_PLUGIN_DATA`,
+  which the harness sets only for the hook process, so under a plugin install the hook
+  wrote where `trimhook report` could not read: the log was invisible to the single
+  command that exists to read it. It is now `TRIMHOOK_DATA` or `~/.trimhook` (TH-21).
 - `evals/local.mjs` counts every tool's result mass, not only Bash's (TH-12).
 - `evals/sample-runs.mjs`: a seeded, bounded sample of the runs a masked collapse folds,
   for a human to classify. The verdict on this corpus — 38 of 40 runs are content, not

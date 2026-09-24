@@ -86,13 +86,22 @@ count of spill files the model actually went back to read.
   field carried through — and the matcher now reads `Bash|Read|WebFetch`. `Agent` is left
   out: its result is a list of message blocks, not one text field.
   <!-- th: prio=med size=M labels=hook,benchmark ver=main -->
-- [ ] **TH-20 — Verify the Read and WebFetch replacement live**: the shapes are measured
-  from 815 real results and the tests hold the replacement to them, but no live session
-  has yet shown the harness accepting an `updatedToolOutput` for a tool other than Bash.
-  A rejected replacement is silent and fail-open — the model gets the original — but the
-  log would claim a saving it did not make. `trimhook report` now breaks down by tool,
-  which is where it would show. Confirm on a real session, then say so in the README.
-  <!-- th: prio=high size=S labels=hook,tests -->
+- [x] **TH-20 — Verify the Read and WebFetch replacement live**: done 2026-09-24 in a
+  Claude Code session with the checkout installed as a plugin. A `Read` of 23,715
+  characters came back at 7,923 with the marker inside `file.content` and the whole file
+  in the spill; the log recorded `Read trimmed elided=15,986`, and the model demonstrably
+  received the cut text — so the saving is real, not a replacement refused in silence. A
+  `seq` of 11,392 characters confirmed Bash in the same session. WebFetch is still only
+  proven against its recorded shape, not live.
+  <!-- th: prio=high size=S labels=hook,tests ver=main -->
+- [x] **TH-21 — The log needs one home**: found while verifying TH-20. `dataDir()`
+  preferred `CLAUDE_PLUGIN_DATA`, which the harness sets for the hook process alone, so
+  the hook wrote to `~/.claude/plugins/data/trimhook-inline` while `trimhook report` in a
+  terminal read `~/.trimhook` and answered "no results logged yet" — the log was
+  unreadable by the one command that exists to read it, and TH-10 is a week of exactly
+  that command. Now `TRIMHOOK_DATA` or `~/.trimhook`, nothing else; the marker's spill
+  paths are absolute either way, so the model never depended on it.
+  <!-- th: prio=high size=S labels=hook ver=main -->
 - [ ] **TH-13 — Smarter cuts for known formats**: a test runner's failures block, a
   build's error lines, a JSON's shape — kept whole even in the middle, when the pattern
   is unambiguous. Only with a measured false-positive rate. <!-- th: prio=low size=L labels=hook,enhancement -->

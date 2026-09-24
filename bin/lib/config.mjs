@@ -36,7 +36,9 @@ export const DEFAULTS = Object.freeze({
   // 62.4% of WebFetch's (2026-09-23). A tool is listed here only when its output shape
   // is known — `harness.mjs` names the three it has seen — because the harness ignores a
   // replacement that does not match the tool's own shape, and an ignored replacement is
-  // a saving the log would claim and the model would not get (TH-20 verifies it live).
+  // a saving the log would claim and the model would not get. Verified live on
+  // 2026-09-24: a 23,715-character Read came back at 7,923 with the marker inside
+  // `file.content`, so Claude Code accepts the replacement for Read, not only Bash.
   tools: ['Bash', 'Read', 'WebFetch'],
 })
 

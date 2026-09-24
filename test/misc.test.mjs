@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { readFileSync, utimesSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { capFor, loadConfig } from '../bin/lib/config.mjs'
 import { doctor } from '../bin/lib/doctor.mjs'
-import { detectHarnessSignal, readResponse, replacementOutput } from '../bin/lib/harness.mjs'
+import { dataDir, detectHarnessSignal, readResponse, replacementOutput } from '../bin/lib/harness.mjs'
 import { render, summarize } from '../bin/lib/report.mjs'
 import { pruneSpill, spill } from '../bin/lib/store.mjs'
 import { env, input, lines, tmp } from './helpers.mjs'
@@ -137,4 +138,15 @@ test('e2e: a long result comes back trimmed in Claude Code shape; garbage stdin 
   const rep = await run(['report'], '', env(d))
   assert.match(rep.stdout, /2 tool results/)
   assert.match(rep.stdout, /trimmed 1/)
+})
+
+// Regression for 2026-09-24: the hook ran under Claude Code, wrote its log to the
+// plugin data directory the harness sets for the hook process alone, and `trimhook
+// report` in a terminal answered "no results logged yet". A log nobody can read is not
+// a log.
+test('the data dir ignores the harness plugin data dir, which only the hook process sees', () => {
+  assert.equal(dataDir({ CLAUDE_PLUGIN_DATA: '/plugins/data/trimhook', HOME: '/home/a' }), join(homedir(), '.trimhook'))
+  assert.equal(dataDir({ PLUGIN_DATA: '/codex/data/trimhook' }), join(homedir(), '.trimhook'))
+  assert.equal(dataDir({ TRIMHOOK_DATA: '/tmp/elsewhere' }), '/tmp/elsewhere')
+  assert.equal(dataDir({}), join(homedir(), '.trimhook'))
 })
