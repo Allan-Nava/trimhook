@@ -22,9 +22,9 @@ match its rules and make TH-9/TH-10 countable.
 ## Proposed solution
 
 Reorder the handler so the trim *decision* precedes the spill *write*, and make a failed
-write veto the cut (D1). Keep trimming by size only — a non-zero exit is an ordinary
-result — but pass through `interrupted: true`, and settle the harness-error field by one
-live capture before the week starts (D2). Ship 0.1.0's code default at 8,000 but run the
+write veto the cut (D1). Trim by size only; on Claude Code a failing command never
+reaches the hook at all (`PostToolUseFailure`, no `tool_response`), so the README stops
+claiming a mechanism it does not have (D2). Ship 0.1.0's code default at 8,000 but run the
 live week at 4,000 with a written decision rule, so the week can *reject* a cap rather
 than confirm the guess (D3). Replace the flat config merge with a per-layer allow-list:
 a repository file may move the saving knobs (`cap`, `perCommand`, `minSaving`, `head`)
@@ -57,8 +57,8 @@ stdin ─► parse ─► Bash? ─► readResponse ─► interrupted? ──�
 |---|---|---|
 | Handler flow | `bin/lib/handlers.mjs:8-31` | modify — decide before spill; spill failure vetoes; prune on every call; failure records |
 | Spill path | `bin/lib/store.mjs:43-50` | modify — split `spillPath()` (pure) from `spill(path, body)` |
-| Response reader | `bin/lib/harness.mjs:32-38` | modify — `interrupted: true` → `null` |
-| Config layers | `bin/lib/config.mjs:68-90` | modify — per-layer allow-list, `problems` for a rejected repo key |
+| Response reader / reply | `bin/lib/harness.mjs:32-56` | modify — `interrupted: true` → `null`; Codex `continue: false` shape with the note in the text, `block` kept behind `codex.mode` |
+| Config layers | `bin/lib/config.mjs:10-18,68-90` | modify — per-layer allow-list, `problems` for a rejected repo key; `codex.mode` key + rule |
 | Doctor | `bin/lib/doctor.mjs:7-37` | modify — count `failed` records; read `bashOutputMaxChars`; state the stdin-detection caveat |
 | Report | `bin/lib/report.mjs:4-33` | modify — `failed` accumulator; `--cap N` what-if over logged `before` sizes |
 | Check | `bin/trimhook.mjs:71-105` | modify — new README statements; forbid sibling-project strings |
@@ -80,14 +80,14 @@ stdin ─► parse ─► Bash? ─► readResponse ─► interrupted? ──�
   - Cut without a path when the spill fails, as shipped — turns a wrong cap into an unrecoverable answer; forbidden by the repo's own rule 3.
 - **Reversible?** yes — it is an ordering change in one function.
 
-### D2 · Trim by size regardless of exit code; pass through `interrupted`; capture the error payload before the week
+### D2 · Trim by size; no `PostToolUseFailure` registration; the README says what the harness does with failures
 
-- **Choice:** keep Q1's default — a command that ran and exited non-zero is trimmed like any other, with the stderr floor as its net. Add one rule: `readResponse` returns `null` when `tool_response.interrupted === true` (a known key of the Bash shape, `CLAUDE.md:75-78`), because a partial result is already an error condition and its tail is the interruption, not the ending. Whether Claude Code adds an `is_error`-style field to a failed Bash call is unknown (`01-research.md` Blind spots, first item); it is captured live on day 0 of TH-10 and, if a field exists, added as a second passthrough rule in the same release. The README's "any error reaches the model unchanged" (`README.md:38`) is reworded to what the mechanism does.
-- **Why:** failing test and build output is the largest and most repetitive population — exempting it by exit code hands back a good share of the 17% the ticket targets and measures the README's savings against a different population than it advertises (Q1's risk). The stderr floor (`trim.mjs:42`, 20% of cap = 1,600 characters at 8,000) plus the 40% tail keeps the "how it ended" region on both streams. The hidden-middle cost is exactly what D6 measures; the design does not pre-empt the measurement.
+- **Choice:** the hook stays size-only on `PostToolUse`. On Claude Code a Bash command that exits non-zero never reaches it: the harness fires `PostToolUseFailure` instead, whose payload carries `error` and `is_interrupt` and **no `tool_response`**, and whose only decision control is `additionalContext` (Addendum, item 1). There is nothing to trim and no field to replace, so trimhook registers no `PostToolUseFailure` entry — `checkHooksFile` keeps its single-`PostToolUse` rule (`trimhook.mjs:57`). `readResponse` still returns `null` on `interrupted: true` (one line, a documented key, `CLAUDE.md:75-78`) although the corpus shows it 0 times in 27,549 results. The README replaces "any error reaches the model unchanged" (`README.md:38`) with the fact: on Claude Code a failed command's output is the harness's own error text (`Exit code N` plus interleaved stdout/stderr, 509 of 599 under 1k characters, none over 30k) and trimhook never sees it; on Codex `PostToolUse` runs after non-zero exits too (`CLAUDE.md:82-84`), so a failing command *is* trimmed by size there, with the stderr floor (`trim.mjs:42`, 20% of cap) and 40% tail keeping its ending.
+- **Why:** the brief's hidden-middle risk on failing commands — the assertion in the elided region — is gone by construction on Claude Code, and so is any saving there: the 17% is entirely successful-command output. Q1's fear (both readings lead to opposite products) was moot; the harness decided. On Codex the risk survives and D6 counts it.
 - **Rejected alternatives:**
-  - Exempt any non-zero exit — the exit code is not in the payload keys `CLAUDE.md:73-80` lists; nothing to branch on without the capture, and the population argument above.
-  - A higher `perCommand` default for test runners (`npm test: 16000`) — a format-aware cut in disguise; v0.2.0 per the brief, only with a measured false-positive rate.
-- **Reversible?** yes — a passthrough rule is one line in `readResponse`.
+  - Register `PostToolUseFailure` to log failure sizes — it would give `report` a population trimhook cannot act on, and a second entry breaks the one-hook-one-file promise; the 599 error results are small (84 in 1k-10k, 6 in 10k-30k), not a sink.
+  - Exempt non-zero exits on Codex too — the exit code is not in the hook input (`tool_response` is a bare string, Addendum item 3); nothing to branch on, and Codex's own `tool_output_token_limit` already bounds it (`CLAUDE.md:91`).
+- **Reversible?** yes — a hooks-file entry and a README paragraph.
 
 ### D3 · Code default 8,000; the live week runs at 4,000 under a written decision rule
 
@@ -109,19 +109,19 @@ stdin ─► parse ─► Bash? ─► readResponse ─► interrupted? ──�
   - A `spillDir`/`logPath` key — Q9 assumed one; none exists (`harness.mjs:26`, env-only) and adding one only widens the surface. Not added.
 - **Reversible?** yes, but loosening it later is a security decision, not a convenience.
 
-### D5 · Codex default-on has a written pass rule, and 0.1.0 does not wait for it
+### D5 · Codex: `decision: block` never defaults on; `continue: false` is the candidate, with a pass rule
 
-- **Choice:** `evals/codex-live.md` holds the TH-9 protocol: Codex ≥ 0.155, scratch repository, `trimhook print-hooks > .codex/hooks.json`, `~/.trimhook.json` with `codex.replace: true`, a command printing a known 20,000-character body with a sentinel line at the start, the middle and the end. Three runs each for `decision: block` and `continue: false`. Pass = in 3 of 3 the model quotes the head and tail sentinels, does not re-run the command, and does not describe the result as failed, blocked or refused; the raw `tool_response` is saved as a fixture for `readResponse`. Pass → `codex.replace` defaults `true` in the same release, README dated; fail → stays `false`, README says what was seen and when.
-- **Why:** the Codex shape is assumed on three guesses (`harness.mjs:33-37`, Q2) and the brief's own risk is the model reading `block` as a refusal. `CLAUDE.md:82-87` documents the replacement; documentation is not observation. Q4 made this a non-blocker for 0.1.0.
+- **Choice:** the live run (Addendum, item 3: Codex 0.155.1, `seq 1 6000`, 28,893 characters) showed `decision: block` reaches the model as `"Script failed …"` + `"Script error: " + reason`, the router logs `error=1`, and `systemMessage` is dropped — even though the model quoted head and tail correctly and never mentioned an error. A replacement that arrives labelled as an error may **never** be the default: `codex.replace` with `block` stays opt-in for good. `replacementOutput` gains a second Codex shape, `{continue: false, stopReason: <text>}` — documented to use "the hook feedback for the model-visible result" without rejecting the tool promise (same item) — selected by `codex.mode: 'continue' | 'block'`, default `continue`. `evals/codex-live.md` holds the TH-9 protocol as item 3 ran it (scratch repo, `print-hooks`, `TRIMHOOK_USER_CONFIG`, `codex exec`), re-run for `continue: false`: pass = in 3 of 3 the session log's `custom_tool_call_output` carries the trimmed text without a "Script failed"/"Script error" prefix, no `error=` line from the router, the model quotes head and tail and does not re-run. Pass → `codex.replace` defaults `true` with `mode: continue`; fail → stays `false`, README says both shapes were tried, and what each did, dated. Because the model on Codex sees the reply as the whole result, the note now travels inside the text: the Codex reply is the trimmed stdout, then `[stderr]` if any, then the note as a last line — `systemMessage` is dropped. `readResponse`'s string branch (`harness.mjs:33`) is now confirmed, and item 3's captured input becomes a fixture. One more consequence: the model can pass `max_output_tokens` to Codex's exec and Codex truncates *before* the hook (run 1 saw 504 of 28,893 characters); the README states it.
+- **Why:** Q4 wanted a verified observation; item 3 is it, and it fails the brief's own criterion — "may read as a failure to the model". The model coping with it this time is not a default-on argument: an error-labelled result invites a re-run, which is exactly D6's cost.
 - **Rejected alternatives:**
-  - Flip the default from the docs alone — the whole reason `codex.replace` exists is that the docs were not trusted.
-  - Drop Codex from 0.1.0 — the audit-mode log (`would-trim`, `handlers.mjs:26-27`) already yields Codex numbers with zero risk; keep it.
-- **Reversible?** yes — a boolean default.
+  - Default on with `block` because the model read it fine — one model, four runs, and the log says `failed`; the label is the harm, not the reading.
+  - Drop Codex replacement entirely — audit mode (`would-trim`, `handlers.mjs:26-27`) still yields numbers, and `continue: false` is documented and untested; one more run is cheap.
+- **Reversible?** yes — a boolean and a mode string.
 
 ### D6 · The re-read count is a transcript scan that shares the hook's `marker()`
 
 - **Choice:** extend `evals/local.mjs` (Structure decides whether as a flag or a sibling file) to walk the same `~/.claude/projects/**/*.jsonl` (`:52`) and `~/.codex/sessions/**/*.jsonl` (`:88`), find every `tool_result` whose text matches a regex built from `marker()` (`trim.mjs:8-10`), extract the spill path, then look at the next five `tool_use` blocks of that session, any tool name: an `input` containing that path or a `spill/` segment is a **spill read**; a `Bash` `input.command` equal to the cut command is a **re-run**. Output: cuts, spill reads, re-runs, rate, by `commandPrefix`, dated JSON under `evals/results/`. The hook records nothing about re-reads (Q7).
-- **Why:** `evals/local.mjs:72` records only `Bash` uses, so a `Read` of a spill file is invisible today (`01-research.md` Blind spots). The transcript is the one place the cut (marker in the result) and the follow-up (any tool call) sit together with a `tool_use_id`; the log has neither. Building the regex from `marker()` means a wording change cannot silently zero the count.
+- **Why:** `evals/local.mjs:72` records only `Bash` uses, so a `Read` of a spill file is invisible today (`01-research.md` Blind spots). The method is now confirmed: every one of the 689 `Read` uses in the corpus carries a string `input.file_path`, and 0 are under `/spill/` (Addendum, item 2) — the scan starts from a known zero, so the week's count is trimhook's alone. The transcript is the one place the cut (marker in the result) and the follow-up (any tool call) sit together with a `tool_use_id`; the log has neither. Building the regex from `marker()` means a wording change cannot silently zero the count. On Codex the scan matches the trimmed text inside `custom_tool_call_output.output[1]` in `~/.codex/sessions/**` (item 3), whichever prefix the reply shape gives it.
 - **Rejected alternatives:**
   - Count `cat`/`sed` of spill paths inside the hook — sees the `Bash` half only (Q7's risk).
   - A `PostToolUse` hook on `Read` — a second hook entry breaks `checkHooksFile`'s single-entry rule (`trimhook.mjs:57`) and `Read` trimming is v0.2.0.
@@ -139,11 +139,12 @@ stdin ─► parse ─► Bash? ─► readResponse ─► interrupted? ──�
 
 ### D8 · Say the numbers and the bounds; make `check` enforce the new statements
 
-- **Choice:** README states the stderr floor (20%, `trim.mjs:42`, currently "a floor" at `README.md:46-47`), the `minSaving` semantics (overflow above the cap, `trim.mjs:50`), the benchmark caveat (synthetic single-stream body, no line snapping, `evals/local.mjs:126`; snap slack up to 200 per cut, `trim.mjs:15-19`), the two-marker two-stream cut and its bound (`room >= 200` clamp, `trim.mjs:28`: a tiny stderr share may exceed its slice by at most 200 + marker length — accepted, tested, not fixed), the hook timeout (5 s, `hooks/hooks.json:8`), and the D3 decision rule. `doctor` also reads `bashOutputMaxChars` from the four `settings.json` locations best-effort under `safe()`, and prints that its harness verdict is from the environment only (`doctor.mjs:16`, no stdin). `check` gains a negative grep for `hookgate|HG-\d|Noul|TYPESAFE` over docs and workflows (`release.yml:150`, `backlog-issues.yml:3-12`, `README.md:133`).
-- **Why:** `01-research.md` "Numbers live in the code" lists five numbers stated nowhere in prose; the ticket's done-when has `npm test` guarding the README's load-bearing statements, and a statement that is not there cannot be guarded.
+- **Choice:** README states the stderr floor (20%, `trim.mjs:42`, currently "a floor" at `README.md:46-47`), the `minSaving` semantics (overflow above the cap, `trim.mjs:50`), the benchmark caveat (synthetic single-stream body, no line snapping, `evals/local.mjs:126`; snap slack up to 200 per cut, `trim.mjs:15-19`), the two-marker two-stream cut and its bound (`room >= 200` clamp, `trim.mjs:28`: a tiny stderr share may exceed its slice by at most 200 + marker length — accepted, tested, not fixed), the hook timeout with its measured cost (5 s, `hooks/hooks.json:8`; p50 70 ms, max 84 ms for a 150,000-character result including Node start-up — Addendum, item 5 — so no internal deadline is added), and the D3 decision rule. `doctor` reads the top-level `bashOutputMaxChars` from the four settings files in precedence order — managed, `.claude/settings.local.json`, `.claude/settings.json`, `~/.claude/settings.json`, highest level that sets it wins — best-effort under `safe()`; when set, Claude Code ignores `BASH_MAX_OUTPUT_LENGTH` and clamps the value to 4,000-128,000 (Addendum, item 4), so `doctor.mjs:33-34` compares the cap against the settings value when one exists and the env var otherwise, and warns when the effective harness cap is below ours. It also says that above that limit the harness already writes the output to a file and sends a preview plus path (v2.1.261+, same item; `persistedOutputPath` in 13 corpus results, item 1) — trimhook is the same idea at a lower cap, and the README says so in one sentence. `doctor` prints that its harness verdict is from the environment only (`doctor.mjs:16`, no stdin). `check` gains a negative grep for `hookgate|HG-\d|Noul|TYPESAFE` over docs and workflows (`release.yml:150`, `backlog-issues.yml:3-12`, `README.md:133`).
+- **Why:** `01-research.md` "Numbers live in the code" lists five numbers stated nowhere in prose; the ticket's done-when has `npm test` guarding the README's load-bearing statements, and a statement that is not there cannot be guarded. The `--settings` command-line level cannot be read by a hook and is named as the one gap.
 - **Rejected alternatives:**
   - Fix the `room` clamp so `after <= cap` holds to the character — needs a stream-dropping rule for budgets under ~300 characters; more code than the bound is worth in 0.1.0.
   - Make `doctor` read stdin — nothing feeds it stdin from a terminal; honesty in one printed line is enough.
+  - An internal deadline in the handler — 84 ms worst case against 5,000; a timer is code that can only fail open more slowly.
 - **Reversible?** yes.
 
 ---
@@ -154,7 +155,7 @@ stdin ─► parse ─► Bash? ─► readResponse ─► interrupted? ──�
 |---|---|---|
 | DB schema | none — JSONL log gains `outcome: 'failed'` and `reason` | `summarize` (`report.mjs:4`) tolerates unknown outcomes today; add the accumulator |
 | Public API | config: repo-layer keys rejected with a `problems` entry; `report --cap N` | pre-release (`0.0.1`, unpublished, `CHANGELOG.md:13-15`) — no compatibility owed |
-| Performance | one fewer write per kept Bash result (D1); prune 20× more frequent (D7), still `readdir` under `safe()` | none needed; the 150k-character timing stays unmeasured (see below) |
+| Performance | one fewer write per kept Bash result (D1); prune 20× more frequent (D7), still `readdir` under `safe()` | none needed; 150,000 characters cost p50 70 ms / max 84 ms against a 5 s timeout (Addendum, item 5) |
 | Security | D4 closes the checkout → `spill: false` path; spill files remain 0600 (`store.mjs:47-48`) | `doctor` BAD on a rejected repo key |
 | Data migration | none | — |
 | Backward compat | `TRIMHOOK_CONFIG` documented as replacing the repo layer — behaviour unchanged, docs changed | — |
@@ -163,7 +164,8 @@ stdin ─► parse ─► Bash? ─► readResponse ─► interrupted? ──�
 
 ## What we are NOT doing
 
-- Exempting non-zero exits from the cut (D2) — no field to branch on; population argument.
+- Registering `PostToolUseFailure` (D2) — it carries no output; on Claude Code failing commands never reach trimhook, and on Codex there is no exit code to branch on.
+- Defaulting `codex.replace` on with `decision: block` (D5) — the harness labels it "Script failed"; only `continue: false` may earn the default.
 - A tighten-only repository rule (D4) — trimhook saves, it does not gate.
 - Fixing the `room >= 200` overshoot to the character (D8) — bound stated and tested instead.
 - Reading spill re-reads from inside the hook (D6) — sees only the `Bash` half.
@@ -176,11 +178,11 @@ stdin ─► parse ─► Bash? ─► readResponse ─► interrupted? ──�
 
 Facts the design assumes but `01-research.md` did not verify:
 
-- [ ] What Claude Code's `tool_response` carries for a Bash call that exits non-zero, times out, or is interrupted — one live capture of each (D2 hinges on an `is_error`-style field existing or not).
-- [ ] That the Claude Code transcript records a `Read` tool use's `input.file_path` (D6) — one grep of a `.jsonl` for `"name":"Read"`; `evals/local.mjs:72` never looked.
-- [ ] Codex's actual `tool_response` shape and how a `decision: block` result appears in `~/.codex/sessions/*.jsonl` (D5, D6 on Codex) — comes out of the TH-9 run.
-- [ ] Where `bashOutputMaxChars` lives in `settings.json` (top level or under a section) and which of the four files win (D8) — the harness docs, dated.
-- [ ] The handler's wall-clock time on a 150,000-character result under the 5 s timeout — one timed run; nothing measures it.
+- [x] What Claude Code's `tool_response` carries for a Bash call that exits non-zero, times out, or is interrupted — one live capture of each (D2 hinges on an `is_error`-style field existing or not). → settled: a non-zero exit fires `PostToolUseFailure` with `error` + `is_interrupt` and no `tool_response`; successful results have no exit field; `interrupted: true` 0 of 27,549 (Addendum, item 1). D2 rewritten.
+- [x] That the Claude Code transcript records a `Read` tool use's `input.file_path` (D6) — one grep of a `.jsonl` for `"name":"Read"`; `evals/local.mjs:72` never looked. → settled: 689 of 689 `Read` uses carry a string `input.file_path`, 0 under `/spill/` (Addendum, item 2). D6 confirmed.
+- [x] Codex's actual `tool_response` shape and how a `decision: block` result appears in `~/.codex/sessions/*.jsonl` (D5, D6 on Codex) — comes out of the TH-9 run. → settled: bare string; `block` lands as "Script failed" / "Script error: <reason>", `systemMessage` dropped, model still read head and tail (Addendum, item 3). D5 rewritten around `continue: false`.
+- [x] Where `bashOutputMaxChars` lives in `settings.json` (top level or under a section) and which of the four files win (D8) — the harness docs, dated. → settled: top-level key, any of the four files, highest level wins, clamp 4,000-128,000, overrides `BASH_MAX_OUTPUT_LENGTH` when set (Addendum, item 4). D8 carries it.
+- [x] The handler's wall-clock time on a 150,000-character result under the 5 s timeout — one timed run; nothing measures it. → settled: p50 70 ms, max 84 ms over ten runs including Node start-up (Addendum, item 5). D8 and Impact cite it; no internal deadline.
 
 > If this list is not empty, consider a short targeted Research round **before**
 > moving to Structure. It costs less than the rework.
