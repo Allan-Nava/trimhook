@@ -207,3 +207,15 @@ test('with spill turned off the cut is taken and the marker names no file', asyn
   assert.doesNotMatch(u.stdout, /Full output:/)
   assert.equal(existsSync(join(d, 'spill')), false)
 })
+
+// TH-26, open: the spill exists so the model can read the middle it did not see, but a
+// Read of it is cut like any other Read. Kept as a todo so the reproduction runs in CI
+// without failing it; the fix turns it into an ordinary test.
+test('a Read of a spill file comes back whole', { todo: 'TH-26 — a read of a spill file is cut again' }, async () => {
+  const d = tmp()
+  const out = await postToolUse(input(lines(5000)), { env: env(d) })
+  const path = out.hookSpecificOutput.updatedToolOutput.stdout.match(/Full output: (\S+)\]/)[1]
+  const content = readFileSync(path, 'utf8')
+  const res = { type: 'text', file: { filePath: path, content, numLines: 5000, startLine: 1, totalLines: 5000 } }
+  assert.equal(await postToolUse(input('', { tool_name: 'Read', tool_input: { file_path: path }, tool_response: res }), { env: env(d) }), null)
+})

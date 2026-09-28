@@ -39,7 +39,11 @@ count of spill files the model actually went back to read.
   design questions it must settle: the default cap (4,000 saves 16%, 8,000 saves 6% on
   the transcripts — at what cost in hidden middles?), what counts as evidence that a
   middle was needed, whether `stderr` deserves its own cap, and what the Codex
-  replacement looks like to the model. <!-- th: prio=high size=L labels=hook,benchmark -->
+  replacement looks like to the model. **State, 2026-09-28:** Questions answered (defaults
+  accepted), Research done with its addendum, Design D1-D8 written and reviewed against
+  `main`. D1 shipped as TH-24; the review left four blocking comments, all written in the
+  Review section of `02-design.md` with the per-decision status. Next: re-enter Design for
+  those comments, then Structure and Plan. <!-- th: prio=high size=L labels=hook,benchmark -->
 - [x] **TH-2 — The PostToolUse cut**: `bin/lib/trim.mjs` — head, tail, marker, line
   boundaries, one cap shared by stdout and stderr with a floor; `updatedToolOutput` in
   Claude Code's Bash shape; `minSaving` so a 9,000-character result is not cut for 1,000.
@@ -117,6 +121,19 @@ count of spill files the model actually went back to read.
   broke the other way: a failed write used to cut anyway, with no pointer, and now
   leaves the result whole (`spillFailed` in the log). Old orphans age out under the
   existing prune. <!-- th: prio=high size=S labels=hook ver=main -->
+- [ ] **TH-26 — A read of a spill file is cut again**: the spill exists so the model can
+  read the middle it did not see — but since TH-12 a `Read` is cut like a Bash result,
+  and nothing exempts the spill directory. Reproduced on 2026-09-28: a 3,000-line Bash
+  result is cut, the model's `Read` of the 88,889-character spill comes back at 7,971
+  characters with a new marker, a second spill is written, and line 1,500 is still not
+  visible. The same happens to a `cat`, `sed` or `grep` of the spill in Bash — seen once
+  in real transcripts, where one of two such reads was cut again. Rule 3 ("the middle is
+  always recoverable") holds only if the model pages with `offset`/`limit`. Found by the
+  TH-1 Design review (comment 3). Decide in TH-1's Design whether the fix is to exempt a
+  `Read` whose `file_path` is under `dataDir()/spill/` (and a Bash command whose only
+  argument is one), or to let the cut stand and have the marker say how to page. The
+  executable reproduction is a `todo` test in `test/handlers.test.mjs`; done when it is
+  a passing test. <!-- th: prio=high size=S labels=hook -->
 - [x] **TH-13 — Smarter cuts for known formats**: measured with `evals/middles.mjs`
   before building, and **dropped**. The premise was that the cut hides the part saying
   what went wrong. On 287 real cuts (2026-09-24) it does not: 13 carry a line that

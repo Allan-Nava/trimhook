@@ -191,9 +191,45 @@ Facts the design assumes but `01-research.md` did not verify:
 
 ## Review
 
-| Comment | From | Status | Resolution |
+Reviewed on 2026-09-28 against `main` at `f58f56d`, with the judgement rubric of the
+qrspi plugin (`skills/qrspi/references/reviewing.md`), in a fresh session. This Design
+was written on 2026-09-23; `main` has since shipped TH-12/TH-20 (Read and WebFetch are
+cut too), TH-16 (runs collapsed before the cut), TH-21 (data dir), TH-22
+(`evals/reads.mjs`), TH-23 and TH-24 (spill written only when the cut is taken).
+
+### Decisions against main
+
+| Decision | Status on main | Evidence | What remains for Structure |
 |---|---|---|---|
-| | | open / resolved | |
+| D1 decide first, spill second, failed spill vetoes | implemented (TH-24, `f58f56d`) | `bin/lib/handlers.mjs:23,31,46-49`; `bin/lib/store.mjs:42-57` (`spillPath`, `writeSpill`); `test/handlers.test.mjs:176-196` | nothing but the log shape: a failed write logs `outcome: 'kept', spillFailed: true`, not `outcome: 'failed', reason: 'spill'` — settle under D7 |
+| D2 size only, no `PostToolUseFailure`, README says the truth | partial | one event registered (`hooks/hooks.json`, `bin/trimhook.mjs:57-62`); `readResponse` has no `interrupted: true` check (`bin/lib/harness.mjs:54`); `README.md:42` still says "on any error: no output" | the `interrupted` check and its test; the README text, now covering Read and WebFetch |
+| D3 default 8,000, week at 4,000, written rule, `report --cap N` | partial | `bin/lib/config.mjs:12`; 0.1.0 shipped at 8,000 before TH-10 (`83a9b1c`); no rule in the README; no `--cap` on `report` (only `evals/local.mjs:37`) | the README rule, `report --cap N`, the split at `before > 8000` |
+| D4 per-layer allow-list for the repository layer | not implemented | one flat merge, `RULES` over the result (`bin/lib/config.mjs:96-118`) | all of it, and a class for each key added since: `collapse.*`, `tools` |
+| D5 Codex `continue: false`, `codex.mode`, TH-9 protocol | not implemented | `bin/lib/harness.mjs:70-76` still sends `decision: 'block'`; no `codex.mode`; no `evals/codex-live.md`; TH-9 open | all of it |
+| D6 re-read scan sharing the marker | partial, different in form (TH-22, `e3617bb`) | `evals/reads.mjs`, `MARKER_RE` at `bin/lib/trim.mjs:17` | window 12, not 5 (`evals/reads.mjs:40`); only `Read` of the exact path counts (`:117`), not a `cat`/`sed` of it; no Codex walk (`:108`); no split by size; Read and WebFetch cuts land in the `(env)` bucket because `commandPrefix('')` is `'(env)'` (`bin/lib/handlers.mjs:78`); no re-run definition for Read or WebFetch |
+| D7 failure records; prune on every call | partial | stderr line kept (`bin/trimhook.mjs:47`); `report.mjs:10-12` and `doctor.mjs` count no failures; the prune runs only on a cut, 1 in 20 (`bin/lib/handlers.mjs:36-40`) | records for thrown errors, the counts, one log schema with D1, the prune decision |
+| D8 numbers, `doctor` on `bashOutputMaxChars`, `check` negative grep | not implemented | `doctor.mjs:35-36` reads only `BASH_MAX_OUTPUT_LENGTH`; `check` has no grep; strays at `.github/workflows/backlog-issues.yml:6` (`HG-n`) and `release.yml:150` ("trims Bash output", stale since TH-12) | all of it, the grep re-scoped (comment 2) |
+
+### Comments
+
+| # | Comment | From | Status | Resolution |
+|---|---|---|---|---|
+| 1 | **Blocking.** D4 allows `cap`, `perCommand`, `minSaving`, `head` and drops every other key; TH-16 and TH-12 added `collapse.enabled`, `collapse.minRun`, `collapse.strict`, `tools` (`bin/lib/config.mjs:33,42`), so a repository file would silently lose them. `collapse.strict: false` folds content in 38 of 40 sampled runs, so it is not a pure saving knob. Classify each key with a reason — e.g. `collapse.enabled`, `collapse.minRun`, `tools` narrow-only; `collapse.strict` denied. | review 2026-09-28 | open | |
+| 2 | **Blocking.** D8's negative grep for `hookgate\|HG-\d\|Noul\|TYPESAFE` over the docs fails at once on text meant to be there: `README.md:241` ("Why not a Noul"), `README.md:250-252` (the hookgate link), `CLAUDE.md:12,92`, `CHANGELOG.md:83,86`; `TYPESAFE` was removed in `83a9b1c`. Limit it to `.github/workflows/*.yml` and name the real strays (`backlog-issues.yml:6`, `release.yml:150`, whose wording must become Bash/Read/WebFetch). | review 2026-09-28 | open | |
+| 3 | **Blocking.** "What we are NOT doing" keeps "other tools" out of scope and D6 says "`Read` trimming is v0.2.0", but TH-12/TH-20 shipped it (matcher `Bash\|Read\|WebFetch`). Consequences: (a) a Read of a spill file is itself cut — **reproduced, filed as TH-26**; (b) the D3 rate pools Bash with Read and WebFetch without saying so; (c) no re-run definition for Read or WebFetch. Delete "other tools" from the list, state TH-12 as in scope, decide the spill exemption (TH-26), say pooled or per tool, define a re-run as the same `file_path` / `url`. | review 2026-09-28 | open | |
+| 4 | **Blocking.** D6 extends `evals/local.mjs` with a five-block window, any tool, and `~/.codex/sessions`; the instrument is already `evals/reads.mjs` (window 12, Read only, Claude only), and D3's "next five tool uses" disagrees with it. Rewrite D6 as the delta on `evals/reads.mjs`: one window for D3 and the script, with a reason; count `cat`/`sed` of spill paths or drop them from the rule; the Codex walk; the split at `before > 8000` via `MARKER_RE` group 2; the `(env)` bucket fixed. | review 2026-09-28 | open | |
+| 5 | Should-fix. D1 against D7: D7 logs `outcome: 'failed', reason: 'spill'`; what shipped is `outcome: 'kept', spillFailed: true` (`bin/lib/handlers.mjs:47`, `BACKLOG.md` TH-24). Mark D1 implemented; have D7 keep `spillFailed` or migrate it on purpose, with `report` reading the chosen one. | review 2026-09-28 | open | |
+| 6 | Should-fix. Problem ("0.1.0 is not a rewrite") and Impact ("pre-release, `0.0.1`, unpublished — no compatibility owed") are false: 0.1.0 was published on 2026-09-23. D4 rejecting repository keys breaks installed users' repo files. Retarget to the next minor, a CHANGELOG "Changed" entry, the Public API row "breaking for repository files that set X; `doctor` reports it". | review 2026-09-28 | open | |
+| 7 | Should-fix. D2 says `readResponse` "still returns `null` on `interrupted: true`"; it never did (`bin/lib/harness.mjs:54`, and at `47a1b9f`). Say "gains a check"; the README sentence is at `README.md:42`. | review 2026-09-28 | open | |
+| 8 | Should-fix. D7's reason "a session that never trims never prunes" no longer holds: since TH-24 a kept result writes nothing. The only remaining case is the pre-TH-24 orphans. Restate or drop the prune move, and keep the Performance row consistent. | review 2026-09-28 | open | |
+| 9 | Should-fix. D3's sweep numbers (759 of 28,219, 15.5%; 268, 6.4%) disagree with `evals/results/2026-09-23-local.json` (807 of 28,800, 16.3%; 289, 6.8%) and with `README.md:139-140` (802 of 28,545; 288). Cite one source with its date, and say the sweep is Bash-only while the week cuts three tools. | review 2026-09-28 | open | |
+| 10 | Nit. D8's "p50 70 ms, max 84 ms" predates the collapse pass (`bin/lib/handlers.mjs:28`). Re-time, or name the build measured. | review 2026-09-28 | open | |
+| 11 | Nit. Line numbers moved: `config.mjs:77` → `:105`, `:73-75` → `:101-103`, `harness.mjs:33` → `:51`, `doctor.mjs:33-34` → `:35-36`, `local.mjs:126` → `:279`. | review 2026-09-28 | open | |
+| 12 | Nit. D5 does not name the tool the TH-9 run is judged on; Codex's hooks now match `Bash\|Read\|WebFetch` too. | review 2026-09-28 | open | |
+
+**Verdict:** the Design advances to Structure once comments 1-4 are applied, with D1
+marked done and D6 rewritten as the delta on `evals/reads.mjs`. Next step: re-enter
+Design scoped to these comments (qrspi `recovery.md`), then Structure.
 
 ---
 
