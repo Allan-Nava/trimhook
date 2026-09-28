@@ -4,15 +4,15 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**23 items · 20 shipped · 3 open · 3 milestones.**
+**25 items · 21 shipped · 4 open · 3 milestones.**
 
 ## At a glance
 
 | Milestone | Phase | Progress | Open | Shipped |
 |---|---|---|---|---|
 | **v0.1.0 — One cut, one number** | now | `#######...` 73% | 3 | 8 |
-| **v0.2.0 — Beyond Bash** | next | `##########` 100% | 0 | 7 |
-| **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 5 |
+| **v0.2.0 — Beyond Bash** | next | `#########.` 88% | 1 | 7 |
+| **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 6 |
 
 ## v0.1.0 — One cut, one number
 
@@ -33,6 +33,7 @@
 - [x] **TH-12** — Other tools · med · M · hook, benchmark · `main`
 - [x] **TH-20** — Verify the Read and WebFetch replacement live · high · S · hook, tests · `main`
 - [x] **TH-21** — The log needs one home · high · S · hook · `main`
+- [ ] **TH-24** — No spill without a cut · high · S · hook
 - [x] **TH-13** — Smarter cuts for known formats · low · L · hook, enhancement · `dropped`
 - [x] **TH-22** — Count what a cut costs, not only what it saves · high · M · benchmark · `main`
 - [x] **TH-23** — The log recorded values, not command names · high · S · hook · `main`
@@ -45,3 +46,4 @@
 - [x] **TH-19** — The false-positive rate of a masked collapse · med · M · benchmark, hook · `main`
 - [x] **TH-17** — The same result twice · med · L · hook · `dropped`
 - [x] **TH-18** — One spill per content · low · S · hook · `dropped`
+- [x] **TH-25** — Format-native lossless folds, from headroom · low · M · benchmark · `dropped`

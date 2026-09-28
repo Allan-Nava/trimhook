@@ -102,6 +102,17 @@ count of spill files the model actually went back to read.
   that command. Now `TRIMHOOK_DATA` or `~/.trimhook`, nothing else; the marker's spill
   paths are absolute either way, so the model never depended on it.
   <!-- th: prio=high size=S labels=hook ver=main -->
+- [ ] **TH-24 — No spill without a cut**: TH-3 promises "no cut without a spill"; the
+  handler also does the converse wrong. `postToolUse` in `bin/lib/handlers.mjs` writes the
+  spill *before* `trimResult` decides, so every result of a listed tool lands on disk,
+  cut or not. Measured on one install on 2026-09-28: 2,551 results logged, 47 cut, 2,551
+  spill files (3.1 MB) — 2,504 of them whole copies of outputs the model saw in full,
+  named by no marker, kept `spillTtlDays` at 0600. That is a week of every command's
+  output, secrets included, for nothing. The path is deterministic from the session and
+  the tool-use id, so the marker can name it before the file exists: decide first, write
+  only when the cut is taken. Found while comparing trimhook with headroom (TH-25). Done
+  when a test asserts a kept result leaves no file, and the prune still covers the old
+  ones. <!-- th: prio=high size=S labels=hook -->
 - [x] **TH-13 — Smarter cuts for known formats**: measured with `evals/middles.mjs`
   before building, and **dropped**. The premise was that the cut hides the part saying
   what went wrong. On 287 real cuts (2026-09-24) it does not: 13 carry a line that
@@ -196,3 +207,19 @@ four items this milestone opened with, one shipped and three are closed by measu
   hash; the TTL prune counts references, not files. **Dropped with TH-17**, which it
   depended on: 100,217 characters of repeated results across the whole corpus is not a
   disk problem. <!-- th: prio=low size=S labels=hook ver=dropped -->
+- [x] **TH-25 — Format-native lossless folds, from headroom**: [headroom](https://github.com/headroomlabs-ai/headroom)
+  (0.39.1) ships reversible, stdlib-only folds that keep an output looking like itself —
+  grep rows headed by file or directory, a path listing headed by directory, a diff
+  without its `index` lines, a repeated block replaced by a back-reference — each
+  verified by a round-trip and discarded when it is not smaller. Measured on 2026-09-28
+  on 500 long tool results from real sessions, with headroom's own `compact_lossless`
+  run before trimhook's cut: the folds alone save 3.6%, and in front of the cut they
+  move the total from 24.6% to 26.1% — 1.5 points, under this milestone's couple of per
+  cent. **Dropped on the measurement.** headroom's own docs add the cost: the model reads
+  only the folded side and has to reconstruct paths itself, which spends output tokens.
+  The same run compared the two tools whole: headroom's full pipeline (its local
+  Kompress model on CPU) saved 18.1% where trimhook saves 24.6%, at 840 ms a result p50
+  against none, and kept 47.6% of error-mentioning lines verbatim against trimhook's
+  78.5%, because it drops words inside lines. Its cross-turn dedup is TH-17 again, and
+  its error protection is TH-13 again — both already closed by measurement here.
+  <!-- th: prio=low size=M labels=benchmark ver=dropped -->
