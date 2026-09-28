@@ -3,7 +3,7 @@
 import { collapseRuns } from './collapse.mjs'
 import { capFor, loadConfig } from './config.mjs'
 import { dataDir, detectHarness, readResponse, replacementOutput } from './harness.mjs'
-import { appendRecord, pruneSpill, spill } from './store.mjs'
+import { appendRecord, pruneSpill, spillPath, writeSpill } from './store.mjs'
 import { trimResult } from './trim.mjs'
 
 export async function postToolUse(input, deps = {}) {
@@ -18,10 +18,12 @@ export async function postToolUse(input, deps = {}) {
   // per-command caps key on, so `perCommand: { "Read": 20000 }` works the same way.
   const command = input.tool_name === 'Bash' ? (input.tool_input?.command ?? '') : input.tool_name
   const cap = capFor(cfg, command)
-  const path = cfg.spill && cfg.mode === 'trim' ? spill(dir, input.session_id, input.tool_use_id, res.stdout, res.stderr) : null
+  // TH-24: the path is decided now and the file written only once the cut is taken, so a
+  // result the model sees in full never leaves a copy on disk.
+  let path = cfg.spill && cfg.mode === 'trim' ? spillPath(dir, input.session_id, input.tool_use_id) : null
   const before = res.stdout.length + res.stderr.length
   // TH-16, and it runs first on purpose: the cut should spend its budget on distinct
-  // content, not on the same line again. The spill above is written from the original,
+  // content, not on the same line again. The spill below is written from the original,
   // so what a run loses here is recoverable exactly as an elided middle is.
   const col = cfg.collapse.enabled && before > cap ? { out: collapseRuns(res.stdout, cfg.collapse), err: collapseRuns(res.stderr, cfg.collapse) } : null
   const collapsed = col ? col.out.collapsed + col.err.collapsed : 0
@@ -37,6 +39,15 @@ export async function postToolUse(input, deps = {}) {
   }
   if (Math.random() < 0.05) pruneSpill(dir, cfg.spillTtlDays * 86400000, deps.now())
   const replaced = cfg.mode === 'trim' && (harness !== 'codex' || cfg.codex.replace)
+  // Written from the original, not the collapsed body: what a collapse or a cut loses is
+  // recoverable from the file. Rule 3: when the write fails the result is left whole —
+  // the marker must never name a missing file, and a cut with no copy is not recoverable.
+  // (Before TH-24 the write came first and a failure cut anyway, without a pointer.)
+  if (path && replaced && !writeSpill(path, res.stdout, res.stderr)) {
+    appendRecord(dir, { ...record, outcome: 'kept', after: record.before, spillFailed: true })
+    return null
+  }
+  if (path && !replaced) path = null
   const elided = t ? t.elided : 0
   appendRecord(dir, { ...record, outcome: replaced ? 'trimmed' : 'would-trim', after, elided, collapsed, spill: path })
   if (!replaced) return null

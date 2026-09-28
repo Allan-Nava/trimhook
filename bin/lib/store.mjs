@@ -3,7 +3,7 @@
 // files, which do hold the output the model did not see. Every write is best-effort:
 // a full disk must never change what the model reads.
 import { appendFileSync, chmodSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 
 const safe = (fn) => {
   try {
@@ -36,18 +36,28 @@ export function readRecords(dir) {
 
 const slug = (s) => String(s || 'no-session').replace(/[^\w-]/g, '_').slice(0, 80)
 
+// Where a result's whole output goes. Deterministic from the session and the tool-use
+// id, so the marker can name the file before it exists — which is what lets the handler
+// decide first and write only when the cut is taken (TH-24).
+export function spillPath(dir, sessionId, toolUseId) {
+  return join(dir, 'spill', slug(sessionId), `${slug(toolUseId || Date.now())}.txt`)
+}
+
 // The whole output, for the model to `Read` if the head and tail were not enough.
 // Owner-only permissions: a command's output can hold whatever the command printed.
-export function spill(dir, sessionId, toolUseId, stdout, stderr) {
+// Returns the path written, or null when the write failed.
+export function writeSpill(p, stdout, stderr) {
   return safe(() => {
-    const d = join(dir, 'spill', slug(sessionId))
-    mkdirSync(d, { recursive: true, mode: 0o700 })
-    const p = join(d, `${slug(toolUseId || Date.now())}.txt`)
+    mkdirSync(dirname(p), { recursive: true, mode: 0o700 })
     const body = stderr ? `${stdout}\n\n===== stderr =====\n${stderr}` : stdout
     writeFileSync(p, body, { mode: 0o600 })
     safe(() => chmodSync(p, 0o600))
     return p
   }) ?? null
+}
+
+export function spill(dir, sessionId, toolUseId, stdout, stderr) {
+  return writeSpill(spillPath(dir, sessionId, toolUseId), stdout, stderr)
 }
 
 export function pruneSpill(dir, ttlMs, now = Date.now()) {

@@ -102,7 +102,7 @@ count of spill files the model actually went back to read.
   that command. Now `TRIMHOOK_DATA` or `~/.trimhook`, nothing else; the marker's spill
   paths are absolute either way, so the model never depended on it.
   <!-- th: prio=high size=S labels=hook ver=main -->
-- [ ] **TH-24 — No spill without a cut**: TH-3 promises "no cut without a spill"; the
+- [x] **TH-24 — No spill without a cut**: TH-3 promises "no cut without a spill"; the
   handler also does the converse wrong. `postToolUse` in `bin/lib/handlers.mjs` writes the
   spill *before* `trimResult` decides, so every result of a listed tool lands on disk,
   cut or not. Measured on one install on 2026-09-28: 2,551 results logged, 47 cut, 2,551
@@ -112,7 +112,11 @@ count of spill files the model actually went back to read.
   the tool-use id, so the marker can name it before the file exists: decide first, write
   only when the cut is taken. Found while comparing trimhook with headroom (TH-25). Done
   when a test asserts a kept result leaves no file, and the prune still covers the old
-  ones. <!-- th: prio=high size=S labels=hook -->
+  ones. **Fixed:** `store.mjs` splits `spillPath` from `writeSpill`, and the handler
+  writes only when it replaces. The same change restores rule 3, which the old order
+  broke the other way: a failed write used to cut anyway, with no pointer, and now
+  leaves the result whole (`spillFailed` in the log). Old orphans age out under the
+  existing prune. <!-- th: prio=high size=S labels=hook ver=main -->
 - [x] **TH-13 — Smarter cuts for known formats**: measured with `evals/middles.mjs`
   before building, and **dropped**. The premise was that the cut hides the part saying
   what went wrong. On 287 real cuts (2026-09-24) it does not: 13 carry a line that

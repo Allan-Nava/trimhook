@@ -170,3 +170,40 @@ test('the logged command name never carries an assignment or a path', () => {
   assert.equal(commandPrefix('npm test'), 'npm test')
   assert.equal(commandPrefix('seq 1 5000'), 'seq')
 })
+
+// TH-24: the spill is written only when the cut is taken. It used to be written before
+// the decision, so every result of a listed tool left a whole copy on disk for a week.
+test('a result that is kept whole leaves no spill file', async () => {
+  const d = tmp()
+  assert.equal(await postToolUse(input('ok\n'), { env: env(d) }), null)
+  // Over the cap, but under minSaving: the cut is not worth taking, so nothing is written.
+  assert.equal(await postToolUse(input('x'.repeat(8500)), { env: env(d) }), null)
+  assert.deepEqual(log(d).map((r) => r.outcome), ['kept', 'kept'])
+  assert.equal(existsSync(join(d, 'spill')), false, 'no spill for results the model saw in full')
+  const out = await postToolUse(input(lines(5000)), { env: env(d) })
+  const path = out.hookSpecificOutput.updatedToolOutput.stdout.match(/Full output: (\S+)\]/)[1]
+  assert.ok(existsSync(path), 'the cut result still spills')
+})
+
+test('when the spill cannot be written, the result is left whole (rule 3)', async () => {
+  const d = tmp()
+  writeFileSync(join(d, 'spill'), 'a file where the directory should be')
+  assert.equal(await postToolUse(input(lines(5000)), { env: env(d) }), null)
+  const [r] = log(d)
+  assert.equal(r.outcome, 'kept')
+  assert.equal(r.spillFailed, true)
+  assert.equal(r.after, r.before)
+})
+
+test('with spill turned off the cut is taken and the marker names no file', async () => {
+  const d = tmp()
+  const repo = join(d, 'repo')
+  const { mkdirSync } = await import('node:fs')
+  mkdirSync(repo)
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ spill: false }))
+  const out = await postToolUse(input(lines(5000), { cwd: repo }), { env: env(d, { TRIMHOOK_USER_CONFIG: join(d, 'user.json') }) })
+  const u = out.hookSpecificOutput.updatedToolOutput
+  assert.ok(u.stdout.length <= 8000)
+  assert.doesNotMatch(u.stdout, /Full output:/)
+  assert.equal(existsSync(join(d, 'spill')), false)
+})

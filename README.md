@@ -30,7 +30,8 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
   boundaries.
 - **Spills the whole output to a file** under `~/.trimhook` and names it in the elision
   marker, so the model can `Read` the part it did not see, on demand, instead of
-  re-running the command.
+  re-running the command. Only a result that is cut is written; if the file cannot be
+  written, the result is left whole.
 - **Measures.** One JSON line per result, sizes only, and `trimhook report` prints what
   was saved, by command.
 

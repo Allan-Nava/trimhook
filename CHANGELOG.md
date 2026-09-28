@@ -29,6 +29,11 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   (TH-12, TH-20).
 
 ### Fixed
+- The spill file is written only when the cut is taken. It used to be written before
+  the decision, so every result of a listed tool left a whole copy on disk for
+  `spillTtlDays` — on one install, 2,551 files for 47 cuts. The same reorder restores
+  rule 3: a spill that cannot be written now leaves the result whole instead of cutting
+  it with no pointer (TH-24).
 - **The audit log could record a secret.** `commandPrefix` reduced a command to its first
   word, but a leading assignment makes the first word a value: a command like
   `AWS_SECRET_ACCESS_KEY=… npm run deploy` wrote the key into `results.jsonl`, and

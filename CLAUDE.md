@@ -53,8 +53,10 @@ CONTRIBUTING.md        local loop, benchmark protocol, release runbook
    nothing. There is no fail-closed: nothing here protects, it only saves.
 2. **The cut is arithmetic.** No model, no heuristics about content. Head, tail, marker,
    line boundaries. `bin/lib/trim.mjs` has no imports and is fully unit-tested.
-3. **The middle is always recoverable.** A result is never elided without its whole
-   output spilled first; if the spill fails, the result is left alone.
+3. **The middle is always recoverable, and only the middle is kept.** A result is never
+   elided without its whole output spilled; if the spill fails, the result is left alone.
+   The converse holds too (TH-24): the path is decided first and the file written only
+   when the cut is taken, so a result the model saw in full leaves no copy on disk.
 4. **Sizes only in the log.** The audit log never carries output text; the command is
    reduced to its first word or two. The spill files hold the output and are 0600.
 5. **Under the harness's ceiling.** Claude Code's `BASH_MAX_OUTPUT_LENGTH` (default
