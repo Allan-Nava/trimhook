@@ -252,6 +252,15 @@ it is; if the model never reads them, the cap can drop.
 - [qrspi](https://github.com/Allan-Nava/qrspi), whose `token-efficiency` skill ranks
   untruncated tool output among the three largest token sinks and says to truncate at
   the source. This is the source.
+- [headroom](https://github.com/headroomlabs-ai/headroom), a compression layer that
+  sits as a proxy between the agent and the API and compresses tool output with format
+  parsers and a local model, keeping originals for a retrieval tool. It is the heavier,
+  semantic answer to the same waste. On the same 500 real results (2026-09-28) it saved
+  18.1% to trimhook's 24.6%, at about 840 ms a result on CPU; the one part that would
+  transplant, its lossless folds, was worth 1.5 points here (`BACKLOG.md`, TH-25). A cut
+  made once, at write time, also leaves history bytes alone, so the prompt cache never
+  sees them change; a proxy that recompresses every request has to be byte-deterministic
+  to promise the same.
 
 ## License
 
