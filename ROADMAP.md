@@ -4,14 +4,14 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**25 items · 21 shipped · 4 open · 3 milestones.**
+**25 items · 22 shipped · 3 open · 3 milestones.**
 
 ## At a glance
 
 | Milestone | Phase | Progress | Open | Shipped |
 |---|---|---|---|---|
 | **v0.1.0 — One cut, one number** | now | `#######...` 73% | 3 | 8 |
-| **v0.2.0 — Beyond Bash** | next | `#########.` 88% | 1 | 7 |
+| **v0.2.0 — Beyond Bash** | next | `##########` 100% | 0 | 8 |
 | **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 6 |
 
 ## v0.1.0 — One cut, one number
@@ -33,7 +33,7 @@
 - [x] **TH-12** — Other tools · med · M · hook, benchmark · `main`
 - [x] **TH-20** — Verify the Read and WebFetch replacement live · high · S · hook, tests · `main`
 - [x] **TH-21** — The log needs one home · high · S · hook · `main`
-- [ ] **TH-24** — No spill without a cut · high · S · hook
+- [x] **TH-24** — No spill without a cut · high · S · hook · `main`
 - [x] **TH-13** — Smarter cuts for known formats · low · L · hook, enhancement · `dropped`
 - [x] **TH-22** — Count what a cut costs, not only what it saves · high · M · benchmark · `main`
 - [x] **TH-23** — The log recorded values, not command names · high · S · hook · `main`
