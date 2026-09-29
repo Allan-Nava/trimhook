@@ -52,7 +52,7 @@ export function doctor({ cwd = process.cwd(), env = process.env, home = homedir(
   ok(existsSync(userPath) ? `user config: ${userPath}` : `user config: none (${userPath})`)
   ok(existsSync(path) ? `repository config: ${path}` : `repository config: none (${path})`)
   for (const p of problems) bad(`config: ${p}`)
-  ok(`mode ${cfg.mode} · cap ${cfg.cap} · head ${cfg.head} · minSaving ${cfg.minSaving} · spill ${cfg.spill} (${cfg.spillTtlDays} days) · codex.replace ${cfg.codex.replace} · codex.mode ${cfg.codex.mode}`)
+  ok(`mode ${cfg.mode} · cap ${cfg.cap} · head ${cfg.head} · minSaving ${cfg.minSaving} · spill ${cfg.spill} (${cfg.spillTtlDays} days) · codex.replace ${cfg.codex.replace} · codex.mode ${cfg.codex.mode}${cfg.holdout ? ` · holdout ${cfg.holdout} (TH-31: that share of cuttable results is left whole)` : ''}`)
   ok(`tools ${cfg.tools.join(', ')}`)
   ok(`collapse ${cfg.collapse.enabled ? `on, ${cfg.collapse.strict ? 'strict' : 'masked'}, runs of ${cfg.collapse.minRun}+` : 'off'}`)
   if (Object.keys(cfg.perCommand).length) ok(`per-command caps: ${Object.entries(cfg.perCommand).map(([c, n]) => `${c}=${n}`).join(', ')}`)

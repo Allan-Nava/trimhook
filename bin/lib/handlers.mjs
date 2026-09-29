@@ -2,6 +2,7 @@
 // print nothing, so the model sees exactly what it would have seen without trimhook.
 import { homedir } from 'node:os'
 import { collapseRuns } from './collapse.mjs'
+import { heldOut } from './holdout.mjs'
 import { capFor, loadConfig } from './config.mjs'
 import { dataDir, detectHarness, readResponse, replacementOutput } from './harness.mjs'
 import { appendRecord, pruneSpill, readsInstructions, readsSpill, spillPath, writeSpill } from './store.mjs'
@@ -50,6 +51,12 @@ export async function postToolUse(input, deps = {}) {
   }
   if (Math.random() < 0.05) pruneSpill(dir, cfg.spillTtlDays * 86400000, deps.now())
   const replaced = cfg.mode === 'trim' && (harness !== 'codex' || cfg.codex.replace)
+  // TH-31: a held-out result is one trimhook would have cut and deliberately did not —
+  // the control group. Decided before the spill, so it writes none.
+  if (replaced && heldOut(input.tool_use_id, cfg.holdout)) {
+    appendRecord(dir, { ...record, outcome: 'kept', after: before, holdout: true })
+    return null
+  }
   // Written from the original, not the collapsed body: what a collapse or a cut loses is
   // recoverable from the file. Rule 3: when the write fails the result is left whole —
   // the marker must never name a missing file, and a cut with no copy is not recoverable.

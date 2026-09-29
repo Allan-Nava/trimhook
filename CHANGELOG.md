@@ -6,6 +6,14 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Added
+- `holdout` (0 to 0.5, default 0, user file or environment only): that share of the
+  results trimhook would cut is left whole and logged `kept, holdout: true` — a control
+  group, chosen from a hash of the tool-use id so the hook and the scan agree on it without
+  the log carrying the id. `node evals/reads.mjs --holdout <share>` compares their re-runs
+  with the cuts'; `report` counts the flag and `doctor` shows the share (TH-31).
+- `evals/reads.mjs`, after a cut Read: the pages of the same file read with `offset` or
+  `limit`, and the Edits of it that failed, within the window — the cost of a middle an
+  Edit needed, and the number TH-28 decides Read's place in `tools` from (TH-28).
 - `trimhook report --cap N` recomputes the logged results at cap N — one cap for every
   result, `perCommand` ignored, the logged collapse replayed on a synthetic body of each
   logged size, as `evals/local.mjs` sweeps — so a week run at 4,000 can be read at 8,000

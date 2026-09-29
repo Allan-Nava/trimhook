@@ -143,3 +143,61 @@ test('reads: an empty home prints the no-cut line, no verdict, and exits 0', () 
   assert.ok(r.stdout.includes('No cut found'), r.stdout)
   assert.ok(!r.stdout.includes('D3 rule'), r.stdout)
 })
+
+// TH-31: the control group — results trimhook would have cut and held out, recognised by
+// the same hash the hook uses, so the log never needs to carry the id.
+import { heldOut } from '../bin/lib/holdout.mjs'
+const idsFor = (share) => {
+  let held, notHeld
+  for (let i = 0; !held || !notHeld; i++) (heldOut(`toolu_r${i}`, share) ? (held ??= `toolu_r${i}`) : (notHeld ??= `toolu_r${i}`))
+  return { held, notHeld }
+}
+const big = 'x'.repeat(12000)
+
+test('reads: with --holdout, a long uncut result whose id is held out is the control group, and its re-run counts', () => {
+  const home = tmp()
+  const { held, notHeld } = idsFor(0.5)
+  claude(home, 'a', [
+    use(held, 'Bash', { command: 'npm test' }), result(held, big), use('t9', 'Bash', { command: 'npm test' }), result('t9', 'ok'),
+    use(notHeld, 'Bash', { command: 'git log' }), result(notHeld, big),
+    use('t1', 'Bash', { command: 'make' }), result('t1', cut(S)),
+  ])
+  const r = run(home, '--holdout', '0.5')
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /## The control group \(TH-31, holdout 0\.5\)/)
+  assert.match(r.stdout, /Held out: 1 results? over 9,500 characters, left whole\. Ran again within the window: 1 \(100\.0%\)\./)
+  assert.match(r.stdout, /Cut, for comparison: 1\. Ran again within the window: 0 \(0\.0%\)\./)
+  assert.doesNotMatch(stdout(home), /control group/, 'no section without --holdout')
+})
+
+test('reads: a short result, or a held-out id with a marker, is not in the control group', () => {
+  const home = tmp()
+  const { held } = idsFor(0.5)
+  claude(home, 'a', [use(held, 'Bash', { command: 'ls' }), result(held, 'short'), use('t2', 'Bash', { command: 'make' }), result('t2', cut(S))])
+  const r = run(home, '--holdout', '0.5')
+  assert.match(r.stdout, /Held out: 0 results/)
+})
+
+// TH-28: what a cut Read costs an Edit — paging the same file, and Edits of it that fail.
+const errResult = (id, text) => ({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content: text, is_error: true }] } })
+
+test('reads: after a cut Read, a paged Read of the same file and a failed Edit of it are counted', () => {
+  const home = tmp()
+  claude(home, 'a', [
+    use('r1', 'Read', { file_path: '/a/big.ts' }), result('r1', cut(S)),
+    use('r2', 'Read', { file_path: '/a/big.ts', offset: 1400, limit: 200 }), result('r2', 'lines'),
+    use('e1', 'Edit', { file_path: '/a/big.ts', old_string: 'x', new_string: 'y' }), errResult('e1', '<tool_use_error>String to replace not found in file.</tool_use_error>'),
+    use('e2', 'Edit', { file_path: '/a/big.ts', old_string: 'z', new_string: 'w' }), result('e2', 'The file has been updated.'),
+    use('e3', 'Edit', { file_path: '/a/other.ts', old_string: 'z', new_string: 'w' }), errResult('e3', '<tool_use_error>String to replace not found in file.</tool_use_error>'),
+  ])
+  const out = stdout(home)
+  assert.match(out, /## After a cut Read \(TH-28, window 12\)/)
+  assert.match(out, /Cut Reads: 1\. Paged the same file \(offset or limit\) within the window: 1 \(100\.0%\)\./)
+  assert.match(out, /Edits of that file within the window: 2; failed: 1 \(50\.0% of edits\)\./)
+})
+
+test('reads: no TH-28 section when no Read was cut', () => {
+  const home = tmp()
+  claude(home, 'a', [use('t1', 'Bash', { command: 'npm test' }), result('t1', cut(S))])
+  assert.doesNotMatch(stdout(home), /After a cut Read/)
+})

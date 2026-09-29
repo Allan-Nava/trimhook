@@ -394,3 +394,39 @@ test('TH-30: two processes print the same bytes for the same event', () => {
   assert.ok(one.stdout.length > 1000)
   assert.equal(one.stdout, two.stdout)
 })
+
+// TH-31: a holdout share of cuttable results is left whole, chosen from a hash of the
+// tool-use id so a run is reproducible, and logged `kept, holdout: true` — the control
+// group TH-10's week compares the cuts against.
+test('TH-31: heldOut is deterministic, never at share 0 or without an id, and near its share', async () => {
+  const { heldOut } = await import('../bin/lib/holdout.mjs')
+  assert.equal(heldOut('toolu_abc', 0), false)
+  assert.equal(heldOut('', 0.5), false)
+  assert.equal(heldOut(undefined, 0.5), false)
+  assert.equal(heldOut('toolu_abc', 0.3), heldOut('toolu_abc', 0.3))
+  let n = 0
+  for (let i = 0; i < 10000; i++) if (heldOut(`toolu_${i}`, 0.1)) n++
+  assert.ok(n > 800 && n < 1200, `about 10% held out, got ${n}`)
+  // Monotone in the share: an id held out at 0.1 is held out at 0.2 too.
+  for (let i = 0; i < 2000; i++) if (heldOut(`toolu_${i}`, 0.1)) assert.equal(heldOut(`toolu_${i}`, 0.2), true)
+})
+
+test('TH-31: with holdout set, a held-out result comes back whole and is logged; the others are cut', async () => {
+  const { heldOut } = await import('../bin/lib/holdout.mjs')
+  const d = tmp()
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ holdout: 0.5 }))
+  let held, cutId
+  for (let i = 0; !held || !cutId; i++) (heldOut(`toolu_h${i}`, 0.5) ? (held ??= `toolu_h${i}`) : (cutId ??= `toolu_h${i}`))
+  assert.equal(await postToolUse(input(lines(5000), { tool_use_id: held }), { env: env(d) }), null)
+  const out = await postToolUse(input(lines(5000), { tool_use_id: cutId }), { env: env(d) })
+  assert.ok(out.hookSpecificOutput.updatedToolOutput.stdout.length <= 8000)
+  const [a, b] = log(d)
+  assert.equal(a.outcome, 'kept')
+  assert.equal(a.holdout, true)
+  assert.equal(a.after, a.before)
+  assert.equal(b.outcome, 'trimmed')
+  assert.equal(existsSync(join(d, 'spill', 's1', `${held}.txt`)), false, 'a held-out result writes no spill')
+  // A short result is never "held out": there was no cut to withhold.
+  assert.equal(await postToolUse(input('ok\n', { tool_use_id: held }), { env: env(d) }), null)
+  assert.equal(log(d)[2].holdout, undefined)
+})

@@ -33,6 +33,11 @@ Two measurements, both without a key and without a network:
    never followed by a read can drop; one that is read often is too low. The README's
    "How the week decides the default cap" turns the two into a default.
 
+   For a measured cost rather than an estimate, add `"holdout": 0.1` to the same file:
+   one cuttable result in ten is left whole, and `node evals/reads.mjs --holdout 0.1`
+   sets their re-runs beside the cuts' (TH-31). The same run counts, after a cut Read,
+   the pages of that file and the Edits of it that failed (TH-28).
+
 3. **Judgement** — `node evals/sample-runs.mjs [--n 40] [--seed 1]` prints a bounded,
    seeded sample of the runs a masked collapse would fold, for a human to classify as
    noise or content. It is the only eval that puts output text on the screen, because
