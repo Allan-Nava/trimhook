@@ -164,6 +164,7 @@ thrown anywhere ──► stderr line + log kept error ──► exit 0         
   - Exempt a Bash command only when a spill path is its sole argument — misses `sed -n 1400,1600p <path>` and `grep -n x <path>`, the natural ways to read a middle.
   - A higher cap for spill reads — a knob on rule 3 that D4 would have to deny, with no number to choose it from.
 - **Reversible?** yes — one predicate before the cut; narrowing it later changes only what a spill read costs.
+- **Prior art (added 2026-09-29, TH-33):** headroom (0.39.1) excludes its own `headroom_retrieve` tool from recompression for the same reason — a recompressed original writes a marker nobody can redeem (`DEFAULT_EXCLUDE_TOOLS` in its `config.py`).
 - **Weak spot:** a spill path written through a symlink (`/tmp` for `/private/tmp` on macOS) or as `$HOME/…` is not recognised and is cut as today — `realpath` per result was judged not worth a filesystem call for paths the model copies from the marker; D6's rule (a) still counts it as a read.
 
 ---
