@@ -71,11 +71,11 @@ count of spill files the model actually went back to read.
   <!-- th: prio=med size=M labels=project,release ver=main -->
 - [x] **TH-8 — Backlog as the single source of truth**: this file, the generated
   roadmap, the one-way issue sync, the planner test. <!-- th: prio=low size=S labels=project ver=main -->
-- [ ] **TH-9 — Verify the Codex replacement live**: `decision: block` with the trimmed
+- [x] **TH-9 — Verify the Codex replacement live**: `decision: block` with the trimmed
   text is documented to replace the result; observe on Codex 0.155+ what the model sees,
   whether it reads as an error, and whether `continue: false` reads better; then flip
   `codex.replace` to default on or record why not. The protocol and its pass rule are
-  in `evals/codex-live.md` (TH-1, D5): three runs per `codex.mode`, judged on `Bash`. <!-- th: prio=high size=S labels=hook,tests -->
+  in `evals/codex-live.md` (TH-1, D5): three runs per `codex.mode`, judged on `Bash`. Done 2026-09-29: neither shape passed on Codex 0.155.1 (`evals/codex-live.md`); `codex.replace` stays opt-in, and the README says what each did. <!-- th: prio=high size=S labels=hook,tests ver=main -->
 - [ ] **TH-10 — Live measurement, one week**: `trimhook report` on real sessions, plus
   the count of `Read` calls on spill files from the transcripts; both numbers into the
   README beside the transcript table, and the default cap decided from them.
@@ -149,6 +149,15 @@ count of spill files the model actually went back to read.
   maintainer to confirm are labelled in the plan: 0.2.0 does not wait for TH-10, and the
   week's verdict is confirmed before the default cap changes.
   <!-- th: prio=high size=L labels=hook,enhancement -->
+- [ ] **TH-34 — The Codex log claims savings the model never got**: found by TH-27 S13,
+  2026-09-29. With `codex.replace: true` and the default `codex.mode: continue`, the hook
+  logs `outcome: 'trimmed'` — but TH-9 showed that on Codex 0.155.1 `continue: false` is
+  read (`hook: PostToolUse Stopped`) and the model still receives the whole output, so
+  `report` would count characters saved that never left the context. Log such a result
+  as `would-trim` (or a distinct outcome) whenever the harness is Codex and the mode is
+  `continue`, until a live run shows the shape replacing the result; and drop the stale
+  comment on `DEFAULTS.codex` in `bin/lib/config.mjs` ("opt-in until TH-9's live run" —
+  that run has happened). <!-- th: prio=med size=S labels=hook -->
 - [x] **TH-13 — Smarter cuts for known formats**: measured with `evals/middles.mjs`
   before building, and **dropped**. The premise was that the cut hides the part saying
   what went wrong. On 287 real cuts (2026-09-24) it does not: 13 carry a line that

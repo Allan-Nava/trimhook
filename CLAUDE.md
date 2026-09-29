@@ -70,8 +70,12 @@ CONTRIBUTING.md        local loop, benchmark protocol, release runbook
    would prompt where the user's rules did not.
 7. **Every number in the README is measured and dated**, from `evals/local.mjs` or a
    live run, with the caveat that transcripts are post-harness-cut.
-8. **Codex replacement stays opt-in until verified live** (`codex.replace`): the
-   contract is documented, the behaviour is not yet observed on a real session.
+8. **Codex replacement stays opt-in** (`codex.replace`): TH-9 tried both shapes live on 2026-09-29,
+   Codex 0.155.1 (`evals/codex-live.md`) — `continue: false`: 0 of 3 passed — runs
+   1-3: untrimmed, Codex logged "hook: PostToolUse Stopped" yet gave the model the whole
+   28,893-character output, no marker, and the turn went on; `decision: block` is
+   recorded as a failed call. On a newer Codex, re-run that protocol before changing the
+   default.
 
 ## Facts the code depends on (dated — re-verify before every tag)
 

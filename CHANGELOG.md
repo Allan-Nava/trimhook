@@ -84,6 +84,12 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   `evals/results/` hold counts only (TH-15).
 
 ### Changed
+- Codex: the replacement stays opt-in. TH-9 tried both shapes live on Codex 0.155.1
+  (2026-09-29): `continue: false`: 0 of 3 passed — runs 1-3: untrimmed, Codex
+  logged "hook: PostToolUse Stopped" yet gave the model the whole 28,893-character
+  output, no marker, and the turn went on; `decision: block` is recorded as a failed
+  call. The README says so, dated; `codex.mode: continue` remains the default shape of
+  an opt-in, though on 0.155.1 it leaves the result unreplaced (TH-9).
 - **Breaking for repository config files.** A repository's `.trimhook.json` (or
   `.claude/` and `.codex/trimhook.json`, or the file `TRIMHOOK_CONFIG` names) may no
   longer set `mode`, `spill`, `spillTtlDays` or `codex.replace` — all accepted in 0.1.0 —
