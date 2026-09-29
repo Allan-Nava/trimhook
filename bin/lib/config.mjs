@@ -20,7 +20,7 @@ export const DEFAULTS = Object.freeze({
   // D5: `continue` answers {continue: false, stopReason}; `block` answers decision:
   // block, which Codex 0.155.1 logs as a failed call ("Script failed …", router
   // error=1, 2026-09-23) — kept for the TH-9 comparison, never a default.
-  codex: { replace: false, mode: 'continue' }, // replacement is opt-in until TH-9's live run
+  codex: { replace: false, mode: 'continue' }, // opt-in: TH-9 (2026-09-29) found neither shape applies cleanly on 0.155.1
   // TH-16: a run of identical lines is collapsed to its first line and a count, before
   // the cut, so the budget buys distinct content.
   //
