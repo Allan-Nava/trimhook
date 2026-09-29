@@ -16,8 +16,8 @@
 | S2 | ✅ done | S2 | `04eb280` (#36) | `interrupted: true` falls through; README "What a failure does."; no deviation |
 | S3 | ⬜ todo | — | — | |
 | S4 | ⬜ todo | — | — | |
-| S5 | ✅ done | S5 | this PR | `evals/codex-live.md`: protocol, pass rule, empty Runs table, pending verdict; no deviation |
-| S6 | 🔄 in progress | S6 | — | |
+| S5 | ✅ done | S5 | `9d4f041` (#37) | `evals/codex-live.md`: protocol, pass rule, empty Runs table, pending verdict; no deviation |
+| S6 | ✅ done | S6 | this PR | thrown errors logged `kept` + `error` (code or name only); `report` and `doctor` count flags; no deviation |
 | S7 | 🔄 in progress | S7 | — | breaking for repository config files (0.2.0) |
 | S8 | ⏸️ blocked | — | — | waits on S2, S5, S6, S7 |
 | S9 | ⏸️ blocked | — | — | waits on S4, S6 |
