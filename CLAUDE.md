@@ -120,6 +120,12 @@ npm run backlog && npm run build:site
 `check` also fails when a workflow under `.github/workflows/` names the sibling project
 (`hookgate` or an `HG-n` id): the docs name it on purpose, CI text never should.
 
+`check` also holds the README to what the code does: under "What it does, exactly" the
+`stderr` floor, what `minSaving` counts, the snap and two-stream slack, the 5 s timeout
+and its measured cost; under "How the week decides the default cap" each term of the D3
+rule. One regex per statement, on its number, inside its own section — a rewording that
+keeps the number passes, a lost number fails.
+
 End to end in Claude Code: install the checkout (`/plugin marketplace add .`,
 `/plugin install trimhook@trimhook`), run a command that prints more than 8,000
 characters (`seq 1 5000`), and read the result: head, one marker line with a path, tail;

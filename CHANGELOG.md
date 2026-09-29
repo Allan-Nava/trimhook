@@ -94,6 +94,12 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   `evals/results/` hold counts only (TH-15).
 
 ### Changed
+- The README states the numbers the code runs on and where the cap bends: `stderr`'s 20%
+  floor, `minSaving` as the overflow above the cap, the 200-character line snap, the
+  two-marker cut and its bound (a tiny share may exceed its slice by at most 200
+  characters plus the marker), and the 5 s hook timeout against a measured p50 of
+  75-83 ms and a maximum of 156 ms (2026-09-28). `check` fails when any of them goes
+  missing, and a test pins the bound (TH-1, D8).
 - **Breaking for repository config files.** A repository's `.trimhook.json` (or
   `.claude/` and `.codex/trimhook.json`, or the file `TRIMHOOK_CONFIG` names) may no
   longer set `mode`, `spill`, `spillTtlDays` or `codex.replace` — all accepted in 0.1.0 —
