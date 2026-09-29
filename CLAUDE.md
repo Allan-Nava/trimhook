@@ -113,6 +113,9 @@ node bin/trimhook.mjs doctor
 npm run backlog && npm run build:site
 ```
 
+`check` also fails when a workflow under `.github/workflows/` names the sibling project
+(`hookgate` or an `HG-n` id): the docs name it on purpose, CI text never should.
+
 End to end in Claude Code: install the checkout (`/plugin marketplace add .`,
 `/plugin install trimhook@trimhook`), run a command that prints more than 8,000
 characters (`seq 1 5000`), and read the result: head, one marker line with a path, tail;

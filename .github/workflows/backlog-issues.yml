@@ -3,7 +3,7 @@ name: Backlog issues
 # Keep the GitHub issues in step with BACKLOG.md.
 #
 # BACKLOG.md is the single source of truth, the same way it is for ROADMAP.md: an
-# item's stable HG-n id is what commits and the CHANGELOG reference, and the issue
+# item's stable TH-n id is what commits and the CHANGELOG reference, and the issue
 # is a view of it. The sync runs one way only — backlog to issues, never the
 # reverse. Editing an issue title or closing it on GitHub does not change the plan;
 # ticking the item in BACKLOG.md does.
@@ -37,7 +37,7 @@ permissions:
   issues: write
 
 concurrency:
-  # Two runs racing would both see "no issue for HG-n" and open it twice.
+  # Two runs racing would both see "no issue for TH-n" and open it twice.
   group: backlog-issues
   cancel-in-progress: false
 
