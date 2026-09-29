@@ -34,6 +34,25 @@ async function readStdin() {
   }
 }
 
+// D7: a thrown error leaves a record, best-effort — the error's code or name, never its
+// message, which can carry a path or a line of output (rule 4). The model still gets the
+// original result: this runs after the handler gave up, and prints nothing to stdout.
+async function logError(input, e) {
+  try {
+    const { appendRecord } = await import('./lib/store.mjs')
+    const { dataDir, detectHarness } = await import('./lib/harness.mjs')
+    const cls = String((typeof e?.code === 'string' && e.code) || (typeof e?.name === 'string' && e.name) || 'Error').replace(/[^\w.-]/g, '_').slice(0, 64)
+    appendRecord(dataDir(), {
+      at: new Date().toISOString(),
+      session: typeof input.session_id === 'string' ? input.session_id : null,
+      harness: detectHarness(process.env, input),
+      tool: typeof input.tool_name === 'string' ? input.tool_name : null,
+      outcome: 'kept',
+      error: cls,
+    })
+  } catch {}
+}
+
 async function handler() {
   const input = await readStdin()
   if (!input) process.exit(0)
@@ -45,6 +64,7 @@ async function handler() {
     if (out) await new Promise((r) => process.stdout.write(`${JSON.stringify(out)}\n`, r))
   } catch (e) {
     process.stderr.write(`trimhook: failed open: ${e.message}\n`)
+    await logError(input, e)
   }
   process.exit(0)
 }

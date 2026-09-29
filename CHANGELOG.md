@@ -6,6 +6,11 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Added
+- Failures leave a record. A thrown error is logged as `outcome: "kept"` with
+  `error: <code>` — the error's code or name, never its message — and the stderr line
+  stays; `trimhook report` counts `spillRead`, `spillFailed` and `error`, and `doctor`
+  warns when the log holds a failed spill or an error, so an install that saves nothing
+  says so (TH-1, D7).
 - A social preview card: `assets/social-preview.html` rendered to
   `assets/social-preview.png` by `npm run build:social`, headless Chrome and no new
   dependency. `site/build.mjs` had named that file in `og:image` since before it existed,

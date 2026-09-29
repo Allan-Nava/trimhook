@@ -111,6 +111,20 @@ test('report sums sizes and ranks commands', () => {
   assert.equal(render(summarize([])), 'no results logged yet')
 })
 
+test('report: flag counts for spillRead, spillFailed and error', () => {
+  const s = summarize([
+    { outcome: 'kept', before: 9000, after: 9000, spillRead: true },
+    { outcome: 'kept', before: 20000, after: 20000, spillFailed: true },
+    { outcome: 'kept', error: 'EACCES' },
+    { outcome: 'kept', error: 'ENOSPC' },
+    { outcome: 'trimmed', before: 30000, after: 8000, command: 'npm test' },
+  ])
+  assert.deepEqual(s.flags, { spillRead: 1, spillFailed: 1, error: 2 })
+  assert.equal(s.saved, 22000)
+  assert.match(render(s), /^flags on kept results: spillRead 1 · spillFailed 1 · error 2$/m)
+  assert.doesNotMatch(render(summarize([{ outcome: 'trimmed', before: 30000, after: 8000 }])), /flags on kept results/)
+})
+
 test('doctor: writable data dir, config problems are BAD, the harness cap is a warning', () => {
   const d = tmp()
   let r = doctor({ cwd: d, env: env(d) })
@@ -119,6 +133,16 @@ test('doctor: writable data dir, config problems are BAD, the harness cap is a w
   assert.ok(r.lines.some((l) => /warn.*BASH_MAX_OUTPUT_LENGTH=4000 is below/.test(l)))
   writeFileSync(join(d, 'user.json'), '{nope')
   assert.equal(doctor({ cwd: d, env: env(d) }).broken, true)
+})
+
+test('doctor warns when the log holds a spillFailed or error record', () => {
+  const d = tmp()
+  writeFileSync(join(d, 'results.jsonl'), '{"outcome":"kept","spillFailed":true}\n{"outcome":"kept","error":"EACCES"}\n{"outcome":"kept","spillRead":true}\n')
+  const r = doctor({ cwd: d, env: env(d) })
+  assert.ok(r.lines.some((l) => /^  warn  log: 2 results left whole after a failure \(spillFailed 1, error 1\)/.test(l)))
+  assert.equal(r.broken, false)
+  const clean = tmp()
+  assert.ok(!doctor({ cwd: clean, env: env(clean) }).lines.some((l) => /warn  log:/.test(l)))
 })
 
 // The CLI contract, end to end: stdin → process → stdout, exit code always 0.
@@ -147,6 +171,26 @@ test('e2e: a long result comes back trimmed in Claude Code shape; garbage stdin 
   const rep = await run(['report'], '', env(d))
   assert.match(rep.stdout, /2 tool results/)
   assert.match(rep.stdout, /trimmed 1/)
+})
+
+test('e2e: a thrown error prints its stderr line, exits 0 and logs kept with the error code', async () => {
+  const d = tmp()
+  // cwd: 5 makes join() inside loadConfig throw ERR_INVALID_ARG_TYPE.
+  const r = await run(['post-tool-use'], JSON.stringify({ ...input(lines(10)), cwd: 5 }), env(d))
+  assert.equal(r.code, 0)
+  assert.equal(r.stdout, '')
+  assert.match(r.stderr, /^trimhook: failed open: /)
+  const raw = readFileSync(join(d, 'results.jsonl'), 'utf8')
+  const rows = raw.split('\n').filter(Boolean)
+  assert.equal(rows.length, 1)
+  const rec = JSON.parse(rows[0])
+  assert.deepEqual(Object.keys(rec), ['at', 'session', 'harness', 'tool', 'outcome', 'error'])
+  assert.equal(rec.outcome, 'kept')
+  assert.equal(rec.error, 'ERR_INVALID_ARG_TYPE')
+  assert.equal(rec.session, 's1')
+  assert.equal(rec.tool, 'Bash')
+  assert.equal(rec.harness, 'claude')
+  assert.ok(!raw.includes('must be of type'))
 })
 
 // Regression for 2026-09-24: the hook ran under Claude Code, wrote its log to the
