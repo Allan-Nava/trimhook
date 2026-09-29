@@ -4,19 +4,19 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**26 items · 22 shipped · 4 open · 3 milestones.**
+**27 items · 23 shipped · 4 open · 3 milestones.**
 
 ## At a glance
 
 | Milestone | Phase | Progress | Open | Shipped |
 |---|---|---|---|---|
-| **v0.1.0 — One cut, one number** | now | `#######...` 73% | 3 | 8 |
-| **v0.2.0 — Beyond Bash** | next | `#########.` 89% | 1 | 8 |
+| **v0.1.0 — One cut, one number** | now | `########..` 82% | 2 | 9 |
+| **v0.2.0 — Beyond Bash** | next | `########..` 80% | 2 | 8 |
 | **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 6 |
 
 ## v0.1.0 — One cut, one number
 
-- [ ] **TH-1** — Run QRSPI on the brief: Questions → Research → Spec → Plan · high · L · hook, benchmark
+- [x] **TH-1** — Run QRSPI on the brief: Questions → Research → Spec → Plan · high · L · hook, benchmark · `main`
 - [x] **TH-2** — The PostToolUse cut · high · M · hook · `main`
 - [x] **TH-3** — Spill files · high · S · hook · `main`
 - [x] **TH-4** — Config with a trust order · med · S · hook · `main`
@@ -35,6 +35,7 @@
 - [x] **TH-21** — The log needs one home · high · S · hook · `main`
 - [x] **TH-24** — No spill without a cut · high · S · hook · `main`
 - [ ] **TH-26** — A read of a spill file is cut again · high · S · hook
+- [ ] **TH-27** — Implement the TH-1 plan · high · L · hook, enhancement
 - [x] **TH-13** — Smarter cuts for known formats · low · L · hook, enhancement · `dropped`
 - [x] **TH-22** — Count what a cut costs, not only what it saves · high · M · benchmark · `main`
 - [x] **TH-23** — The log recorded values, not command names · high · S · hook · `main`
