@@ -55,7 +55,13 @@ Pass = in 3 of 3 runs with `mode: continue` the session log's `custom_tool_call_
 
 | Date | Codex version | Mode | Tool names seen | Error prefix | Router error= | Head quoted | Tail quoted | Re-run |
 |---|---|---|---|---|---|---|---|---|
+| 2026-09-29 | 0.155.1 / gpt-6-luna | continue | Bash | untrimmed | 0 | yes | yes | no |
+| 2026-09-29 | 0.155.1 / gpt-6-luna | continue | Bash | untrimmed | 0 | yes | yes | no |
+| 2026-09-29 | 0.155.1 / gpt-6-luna | continue | Bash | untrimmed | 0 | yes | yes | no |
+| 2026-09-29 | 0.155.1 / gpt-6-luna | block | Bash | Script failed + Script error | 1 | yes | yes | no |
+| 2026-09-29 | 0.155.1 / gpt-6-luna | block | Bash | Script failed + Script error | 1 | yes | yes | no |
+| 2026-09-29 | 0.155.1 / gpt-6-luna | block | Bash | Script failed + Script error | 1 | yes | yes | no |
 
 One row per run; dates as `2026-MM-DD`, Mode `continue` or `block`.
 
-**Verdict:** pending — pass or fail, with the date and the Codex version.
+**Verdict:** fail — 2026-09-29, Codex 0.155.1 (gpt-6-luna): continue 0 of 3 passed — runs 1-3: untrimmed, Codex logged "hook: PostToolUse Stopped" yet gave the model the whole 28,893-character output, no marker, and the turn went on; block 3 of 3 prefixed "Script failed", router error= in 3 of 3, head and tail quoted in 3 of 3; tools seen: Bash; runs discarded for max_output_tokens: 0.

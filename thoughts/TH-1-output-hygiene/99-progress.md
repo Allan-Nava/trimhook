@@ -12,7 +12,7 @@
 
 | Step | Status | Session | Commit | Note |
 |---|---|---|---|---|
-| S1 | ✅ done | S1 | this PR | `readsSpill()` in `store.mjs`; a Read under `<data>/spill/` or a Bash command naming a spill path comes back whole, logged `spillRead`; TH-26 closed; no deviation |
+| S1 | ✅ done | S1 | `71059d6` (#41) | `readsSpill()` in `store.mjs`; a Read under `<data>/spill/` or a Bash command naming a spill path comes back whole, logged `spillRead`; TH-26 closed; no deviation |
 | S2 | ✅ done | S2 | `04eb280` (#36) | `interrupted: true` falls through; README "What a failure does."; no deviation |
 | S3 | ⬜ todo | — | — | |
 | S4 | ⬜ todo | — | — | |
@@ -23,8 +23,8 @@
 | S9 | ⏸️ blocked | — | — | waits on S4, S6 |
 | S10 | ⏸️ blocked | — | — | waits on S3, S9 |
 | S11 | ⏸️ blocked | — | — | waits on S6, S8, S10 |
-| S12 | ⬜ todo | — | — | unblocked: S1, S5, S8 merged |
-| S13 | ⏸️ blocked | — | — | waits on S12 |
+| S12 | ✅ done | orchestrator | this PR | TH-9 fail — `evals/codex-live.md` |
+| S13 | ⬜ todo | — | — | unblocked: apply the **fail** branch |
 | S14 | ⏸️ blocked | — | — | TH-10 live week; waits on S1, S4, S6, S7, S9 |
 | S15 | ⏸️ blocked | — | — | waits on S14 |
 
@@ -37,13 +37,28 @@ parallel, then S8, then S12 and S13 — and the rest after.
 
 ## Where I left off
 
-**Current step:** S12
+**Current step:** S13
 
-**Next concrete action:** run the live Codex protocol in `evals/codex-live.md` from a checkout of main on branch `th-9-live-run`
+**Next concrete action:** run S13 in a fresh session on a branch from main, taking the fail branch of its plan.
+
+---
+
+## Verifications run
+
+| What | Step, date | Result |
+|---|---|---|
+| TH-9 protocol, evals/codex-live.md ## Runs | S12, 2026-09-29 | fail — Codex 0.155.1, 3 continue + 3 block runs, 0 discarded; verdict line in evals/codex-live.md. Run by the orchestrating Claude session at the maintainer's request ("completa prima le th 9"), following the protocol step by step; the six `codex exec` runs were real and the facts were read off the session logs and stderr. |
 
 ---
 
 ## Discoveries
+
+- **S12, 2026-09-29 — `continue: false` does not replace a PostToolUse result on Codex
+  0.155.1.** Codex reads it (stderr: `hook: PostToolUse Stopped`), but the model receives
+  the original output whole and the turn continues, so D5's candidate shape is inert, not
+  harmful. `block` replaces the text, marker included, and labels it "Script failed" /
+  "Script error"; the model still quoted head and tail in 3 of 3. `codex.replace` stays
+  off by default, so no user was ever affected.
 
 - **S8, 2026-09-29 — the plan's privacy grep matches its own fixture.** The staged-diff
   grep (`/Users/|/home/|/var/folders/|/tmp/|rollout-|<uuid shape>`) matches four lines of
