@@ -4,14 +4,14 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**35 items · 31 shipped · 4 open · 4 milestones.**
+**35 items · 32 shipped · 3 open · 4 milestones.**
 
 ## At a glance
 
 | Milestone | Phase | Progress | Open | Shipped |
 |---|---|---|---|---|
 | **v0.1.0 — One cut, one number** | now | `#########.` 91% | 1 | 10 |
-| **v0.2.0 — Beyond Bash** | next | `########..` 83% | 2 | 10 |
+| **v0.2.0 — Beyond Bash** | next | `#########.` 92% | 1 | 11 |
 | **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 6 |
 | **v0.4.0 — What headroom measured** | later | `########..` 83% | 1 | 5 |
 
@@ -38,7 +38,7 @@
 - [x] **TH-26** — A read of a spill file is cut again · high · S · hook · `0.2.0`
 - [ ] **TH-27** — Implement the TH-1 plan · high · L · hook, enhancement
 - [x] **TH-34** — The Codex log claims savings the model never got · med · S · hook · `0.2.0`
-- [ ] **TH-35** — The release notes carry the CHANGELOG section · med · S · release
+- [x] **TH-35** — The release notes carry the CHANGELOG section · med · S · release · `main`
 - [x] **TH-13** — Smarter cuts for known formats · low · L · hook, enhancement · `dropped`
 - [x] **TH-22** — Count what a cut costs, not only what it saves · high · M · benchmark · `0.2.0`
 - [x] **TH-23** — The log recorded values, not command names · high · S · hook · `0.2.0`

@@ -5,6 +5,13 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 
 ## [Unreleased]
 
+### Changed
+- The GitHub release notes open with the version's CHANGELOG section, above the install
+  lines and the list of pull requests: 0.2.0's breaking change had been missing from
+  notes built from pull-request titles alone. `check` now fails when a **Breaking** entry
+  is not the first under its heading, and when `release.yml` stops building the notes
+  from the CHANGELOG (TH-35).
+
 ## [0.2.0] — 2026-09-29
 
 The TH-1 design, implemented (TH-27), and the v0.4.0 items taken from headroom. **One

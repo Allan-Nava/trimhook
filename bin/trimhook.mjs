@@ -18,6 +18,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { breakingOutOfPlace } from './lib/changelog.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(ROOT, p), 'utf8')
@@ -154,7 +155,13 @@ function check() {
     const log = read('CHANGELOG.md')
     if (!/^## \[Unreleased\]/m.test(log)) fail('CHANGELOG.md needs an [Unreleased] section')
     if (!log.includes(`## [${pkg.version}]`)) fail(`CHANGELOG.md has no section for ${pkg.version}`)
+    // TH-35: a Breaking entry leads its heading, so it leads the release notes too.
+    for (const b of breakingOutOfPlace(log)) fail(`CHANGELOG.md [${b.section}] ### ${b.heading}: a **Breaking** entry must be the first under its heading`)
   }
+  // TH-35: the release notes open with the tag's CHANGELOG section; a release.yml that
+  // stopped calling the script would publish notes from pull-request titles alone.
+  const release = join(ROOT, '.github', 'workflows', 'release.yml')
+  if (existsSync(release) && !read('.github/workflows/release.yml').includes('scripts/release-notes.mjs')) fail('release.yml must build the notes from the CHANGELOG with scripts/release-notes.mjs (TH-35)')
   if (existsSync(join(ROOT, 'README.md'))) {
     const readme = read('README.md')
     if (!/nothing leaves the machine/i.test(readme)) fail('README.md must state that nothing leaves the machine')
