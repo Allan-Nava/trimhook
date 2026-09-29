@@ -73,7 +73,8 @@ count of spill files the model actually went back to read.
 - [ ] **TH-9 — Verify the Codex replacement live**: `decision: block` with the trimmed
   text is documented to replace the result; observe on Codex 0.155+ what the model sees,
   whether it reads as an error, and whether `continue: false` reads better; then flip
-  `codex.replace` to default on or record why not. <!-- th: prio=high size=S labels=hook,tests -->
+  `codex.replace` to default on or record why not. The protocol and its pass rule are
+  in `evals/codex-live.md` (TH-1, D5): three runs per `codex.mode`, judged on `Bash`. <!-- th: prio=high size=S labels=hook,tests -->
 - [ ] **TH-10 — Live measurement, one week**: `trimhook report` on real sessions, plus
   the count of `Read` calls on spill files from the transcripts; both numbers into the
   README beside the transcript table, and the default cap decided from them.
