@@ -3,7 +3,7 @@
 // files, which do hold the output the model did not see. Every write is best-effort:
 // a full disk must never change what the model reads.
 import { appendFileSync, chmodSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 
 const safe = (fn) => {
   try {
@@ -41,6 +41,28 @@ const slug = (s) => String(s || 'no-session').replace(/[^\w-]/g, '_').slice(0, 8
 // decide first and write only when the cut is taken (TH-24).
 export function spillPath(dir, sessionId, toolUseId) {
   return join(dir, 'spill', slug(sessionId), `${slug(toolUseId || Date.now())}.txt`)
+}
+
+// TH-26 (D9): does this tool use read a spill file back? Such a read comes back whole —
+// cutting it again would write a copy of a copy and leave the middle unseen (rule 3).
+// String tests only: no realpath, so /tmp for /private/tmp or $HOME/… is missed and cut.
+export function readsSpill({ dir, home, cwd, tool, input }) {
+  const root = resolve(dir, 'spill')
+  if (tool === 'Read') {
+    const p = input?.file_path
+    if (typeof p !== 'string' || !p) return false
+    return resolve(typeof cwd === 'string' ? cwd : sep, p).startsWith(root + sep)
+  }
+  if (tool === 'Bash') {
+    const c = input?.command
+    if (typeof c !== 'string') return false
+    if (c.includes(root)) return true
+    // Erring broad is deliberate: an over-wide Bash match costs tokens only, a miss
+    // breaks rule 3.
+    if (typeof home === 'string' && home.length > 1 && root.startsWith(home + sep)) return c.includes('~' + root.slice(home.length))
+    return false
+  }
+  return false
 }
 
 // The whole output, for the model to `Read` if the head and tail were not enough.

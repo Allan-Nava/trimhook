@@ -126,19 +126,17 @@ count of spill files the model actually went back to read.
   broke the other way: a failed write used to cut anyway, with no pointer, and now
   leaves the result whole (`spillFailed` in the log). Old orphans age out under the
   existing prune. <!-- th: prio=high size=S labels=hook ver=main -->
-- [ ] **TH-26 — A read of a spill file is cut again**: the spill exists so the model can
+- [x] **TH-26 — A read of a spill file is cut again**: the spill exists so the model can
   read the middle it did not see — but since TH-12 a `Read` is cut like a Bash result,
-  and nothing exempts the spill directory. Reproduced on 2026-09-28: a 3,000-line Bash
+  and nothing exempted the spill directory. Reproduced on 2026-09-28: a 3,000-line Bash
   result is cut, the model's `Read` of the 88,889-character spill comes back at 7,971
   characters with a new marker, a second spill is written, and line 1,500 is still not
-  visible. The same happens to a `cat`, `sed` or `grep` of the spill in Bash — seen once
-  in real transcripts, where one of two such reads was cut again. Rule 3 ("the middle is
-  always recoverable") holds only if the model pages with `offset`/`limit`. Found by the
-  TH-1 Design review (comment 3). Decide in TH-1's Design whether the fix is to exempt a
-  `Read` whose `file_path` is under `dataDir()/spill/` (and a Bash command whose only
-  argument is one), or to let the cut stand and have the marker say how to page. The
-  executable reproduction is a `todo` test in `test/handlers.test.mjs`; done when it is
-  a passing test. <!-- th: prio=high size=S labels=hook -->
+  visible. The same happened to a `cat`, `sed` or `grep` of the spill in Bash. Fixed by
+  TH-1's D9: a `Read` whose `file_path`, resolved against the hook's `cwd`, lies under
+  `<data>/spill/`, and a Bash command containing that directory's path — absolute, or
+  `~/…` when the data dir is under home — come back whole and are logged `kept` with
+  `spillRead: true`; `WebFetch` is never exempt. The reproduction is an ordinary test in
+  `test/handlers.test.mjs`. <!-- th: prio=high size=S labels=hook ver=main -->
 - [ ] **TH-27 — Implement the TH-1 plan**: `thoughts/TH-1-output-hygiene/04-plan.md`,
   one fresh session per step, progress in `99-progress.md`. Thirteen agent steps — S1 the
   spill-read exemption (closes TH-26), S2 interrupted results, S3 stray strings in the

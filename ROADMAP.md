@@ -4,14 +4,14 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**33 items · 25 shipped · 8 open · 4 milestones.**
+**33 items · 26 shipped · 7 open · 4 milestones.**
 
 ## At a glance
 
 | Milestone | Phase | Progress | Open | Shipped |
 |---|---|---|---|---|
 | **v0.1.0 — One cut, one number** | now | `########..` 82% | 2 | 9 |
-| **v0.2.0 — Beyond Bash** | next | `########..` 80% | 2 | 8 |
+| **v0.2.0 — Beyond Bash** | next | `#########.` 90% | 1 | 9 |
 | **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 6 |
 | **v0.4.0 — What headroom measured** | later | `###.......` 33% | 4 | 2 |
 
@@ -35,7 +35,7 @@
 - [x] **TH-20** — Verify the Read and WebFetch replacement live · high · S · hook, tests · `main`
 - [x] **TH-21** — The log needs one home · high · S · hook · `main`
 - [x] **TH-24** — No spill without a cut · high · S · hook · `main`
-- [ ] **TH-26** — A read of a spill file is cut again · high · S · hook
+- [x] **TH-26** — A read of a spill file is cut again · high · S · hook · `main`
 - [ ] **TH-27** — Implement the TH-1 plan · high · L · hook, enhancement
 - [x] **TH-13** — Smarter cuts for known formats · low · L · hook, enhancement · `dropped`
 - [x] **TH-22** — Count what a cut costs, not only what it saves · high · M · benchmark · `main`

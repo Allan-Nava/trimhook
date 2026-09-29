@@ -1,13 +1,14 @@
 // The one handler: read the result, decide, spill, replace, log — and on any error,
 // print nothing, so the model sees exactly what it would have seen without trimhook.
+import { homedir } from 'node:os'
 import { collapseRuns } from './collapse.mjs'
 import { capFor, loadConfig } from './config.mjs'
 import { dataDir, detectHarness, readResponse, replacementOutput } from './harness.mjs'
-import { appendRecord, pruneSpill, spillPath, writeSpill } from './store.mjs'
+import { appendRecord, pruneSpill, readsSpill, spillPath, writeSpill } from './store.mjs'
 import { trimResult } from './trim.mjs'
 
 export async function postToolUse(input, deps = {}) {
-  deps = { env: process.env, now: Date.now, ...deps }
+  deps = { env: process.env, now: Date.now, home: homedir(), ...deps }
   const { cfg } = loadConfig(input.cwd ?? process.cwd(), deps.env)
   const harness = detectHarness(deps.env, input)
   const dir = dataDir(deps.env)
@@ -18,10 +19,16 @@ export async function postToolUse(input, deps = {}) {
   // per-command caps key on, so `perCommand: { "Read": 20000 }` works the same way.
   const command = input.tool_name === 'Bash' ? (input.tool_input?.command ?? '') : input.tool_name
   const cap = capFor(cfg, command)
+  const before = res.stdout.length + res.stderr.length
+  const record = { at: new Date(deps.now()).toISOString(), session: input.session_id ?? null, harness, mode: cfg.mode, tool: input.tool_name, command: commandPrefix(command), before, cap }
+  // TH-26 (D9): a read of a spill file is exempt — whatever mode, spill or harness say.
+  if (readsSpill({ dir, home: deps.home, cwd: input.cwd, tool: input.tool_name, input: input.tool_input })) {
+    appendRecord(dir, { ...record, outcome: 'kept', after: before, spillRead: true })
+    return null
+  }
   // TH-24: the path is decided now and the file written only once the cut is taken, so a
   // result the model sees in full never leaves a copy on disk.
   let path = cfg.spill && cfg.mode === 'trim' ? spillPath(dir, input.session_id, input.tool_use_id) : null
-  const before = res.stdout.length + res.stderr.length
   // TH-16, and it runs first on purpose: the cut should spend its budget on distinct
   // content, not on the same line again. The spill below is written from the original,
   // so what a run loses here is recoverable exactly as an elided middle is.
@@ -29,7 +36,6 @@ export async function postToolUse(input, deps = {}) {
   const collapsed = col ? col.out.collapsed + col.err.collapsed : 0
   const body = collapsed ? { stdout: col.out.text, stderr: col.err.text } : res
   const t = trimResult(body, { cap, head: cfg.head, minSaving: cfg.minSaving }, path)
-  const record = { at: new Date(deps.now()).toISOString(), session: input.session_id ?? null, harness, mode: cfg.mode, tool: input.tool_name, command: commandPrefix(command), before, cap }
   // Collapsing alone can bring a result under the cap, and then there is nothing left to
   // elide — but there is still a shorter result to hand back.
   const after = t ? t.after : body.stdout.length + body.stderr.length

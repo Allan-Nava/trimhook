@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { commandPrefix, postToolUse } from '../bin/lib/handlers.mjs'
 import { env, input, lines, tmp } from './helpers.mjs'
@@ -221,14 +221,86 @@ test('with spill turned off the cut is taken and the marker names no file', asyn
   assert.equal(existsSync(join(d, 'spill')), false)
 })
 
-// TH-26, open: the spill exists so the model can read the middle it did not see, but a
-// Read of it is cut like any other Read. Kept as a todo so the reproduction runs in CI
-// without failing it; the fix turns it into an ordinary test.
-test('a Read of a spill file comes back whole', { todo: 'TH-26 — a read of a spill file is cut again' }, async () => {
-  const d = tmp()
+// TH-26 (D9): a read of a spill file comes back whole — Read by path, Bash by naming the directory.
+const firstCut = async (d) => {
   const out = await postToolUse(input(lines(5000)), { env: env(d) })
-  const path = out.hookSpecificOutput.updatedToolOutput.stdout.match(/Full output: (\S+)\]/)[1]
+  return out.hookSpecificOutput.updatedToolOutput.stdout.match(/Full output: (\S+)\]/)[1]
+}
+
+test('TH-26: a Read of a spill file comes back whole, logged kept with spillRead', async () => {
+  const d = tmp()
+  const path = await firstCut(d)
   const content = readFileSync(path, 'utf8')
   const res = { type: 'text', file: { filePath: path, content, numLines: 5000, startLine: 1, totalLines: 5000 } }
-  assert.equal(await postToolUse(input('', { tool_name: 'Read', tool_input: { file_path: path }, tool_response: res }), { env: env(d) }), null)
+  assert.equal(await postToolUse(input('', { tool_name: 'Read', tool_use_id: 'toolu_02', tool_input: { file_path: path }, tool_response: res }), { env: env(d) }), null)
+  const r = log(d)[1]
+  assert.equal(r.outcome, 'kept')
+  assert.equal(r.spillRead, true)
+  assert.equal(r.tool, 'Read')
+  assert.equal(r.command, 'Read')
+  assert.equal(r.before, content.length)
+  assert.equal(r.after, content.length)
+  assert.equal(existsSync(join(d, 'spill', 's1', 'toolu_02.txt')), false)
+})
+
+test('TH-26: a Bash sed -n of a spill path comes back whole', async () => {
+  const d = tmp()
+  const path = await firstCut(d)
+  assert.equal(await postToolUse(input(lines(5000), { tool_use_id: 'toolu_02', tool_input: { command: `sed -n 1400,1600p ${path}` } }), { env: env(d) }), null)
+  const r = log(d).at(-1)
+  assert.equal(r.outcome, 'kept')
+  assert.equal(r.spillRead, true)
+  assert.equal(r.command, 'sed')
+  assert.equal(existsSync(join(d, 'spill', 's1', 'toolu_02.txt')), false)
+})
+
+test('TH-26: a Bash command naming the spill with ~/ comes back whole', async () => {
+  const d = tmp()
+  const ev = input(lines(5000), { tool_input: { command: `cat ~/${basename(d)}/spill/s1/toolu_01.txt` } })
+  assert.equal(await postToolUse(ev, { env: env(d), home: dirname(d) }), null)
+  assert.equal(log(d).at(-1).spillRead, true)
+  // The ~ form only counts when the data dir is under home.
+  const out = await postToolUse(ev, { env: env(d), home: '/nonexistent-home' })
+  assert.ok(out.hookSpecificOutput)
+})
+
+test('TH-26: a Read beside spill/ and a WebFetch naming a spill path are still cut', async () => {
+  const d = tmp()
+  const beside = join(d, 'spill-notes.txt')
+  const content = lines(5000)
+  const res = { type: 'text', file: { filePath: beside, content, numLines: 5000, startLine: 1, totalLines: 5000 } }
+  const read = await postToolUse(input('', { tool_name: 'Read', tool_input: { file_path: beside }, tool_response: res }), { env: env(d) })
+  assert.match(read.hookSpecificOutput.updatedToolOutput.file.content, /characters elided/)
+  const named = join(d, 'spill', 's1', 'x.txt')
+  const fetched = { bytes: 1, code: 200, codeText: 'OK', result: lines(5000), durationMs: 1, url: 'file://x' }
+  const web = await postToolUse(input('', { tool_name: 'WebFetch', tool_use_id: 'toolu_02', tool_input: { url: `file://${named}`, prompt: named }, tool_response: fetched }), { env: env(d) })
+  assert.match(web.hookSpecificOutput.updatedToolOutput.result, /characters elided/)
+  for (const r of log(d)) assert.equal(r.spillRead, undefined)
+})
+
+test('TH-26: a relative Read path is resolved against the event\'s cwd', async () => {
+  const d = tmp()
+  const content = lines(5000)
+  const res = { type: 'text', file: { filePath: 'spill/s1/toolu_01.txt', content, numLines: 5000, startLine: 1, totalLines: 5000 } }
+  assert.equal(await postToolUse(input('', { tool_name: 'Read', cwd: d, tool_input: { file_path: 'spill/s1/toolu_01.txt' }, tool_response: res }), { env: env(d) }), null)
+  assert.equal(log(d).at(-1).spillRead, true)
+})
+
+test('TH-26: the exemption holds in audit mode and on Codex', async () => {
+  const d = tmp()
+  const path = join(d, 'spill', 's1', 'toolu_01.txt')
+  const content = lines(5000)
+  const res = { type: 'text', file: { filePath: path, content, numLines: 5000, startLine: 1, totalLines: 5000 } }
+  assert.equal(await postToolUse(input('', { tool_name: 'Read', tool_input: { file_path: path }, tool_response: res }), { env: env(d, { TRIMHOOK_MODE: 'audit' }) }), null)
+  const a = log(d).at(-1)
+  assert.equal(a.outcome, 'kept')
+  assert.equal(a.spillRead, true)
+  const d2 = tmp()
+  writeFileSync(join(d2, 'user.json'), JSON.stringify({ codex: { replace: true } }))
+  const codex = { TRIMHOOK_DATA: d2, PLUGIN_ROOT: '/codex-plugin', TRIMHOOK_USER_CONFIG: join(d2, 'user.json') }
+  const ev = input(lines(5000), { turn_id: 't1', tool_input: { command: `sed -n 1,9999p ${join(d2, 'spill', 's1', 'a.txt')}` }, tool_response: lines(5000) })
+  assert.equal(await postToolUse(ev, { env: codex }), null)
+  const c = log(d2).at(-1)
+  assert.equal(c.spillRead, true)
+  assert.equal(c.harness, 'codex')
 })
