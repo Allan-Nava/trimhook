@@ -39,6 +39,35 @@ test('stdout and stderr share the cap proportionally, with a floor for stderr', 
   assert.equal(c.out + c.err, 8000)
 })
 
+// D8: a share smaller than a marker still keeps 200 characters (room clamp,
+// bin/lib/trim.mjs:34), so it can exceed its slice. The bound is documented, not fixed.
+test('a share too small for a marker exceeds its slice by at most 200 plus the marker length', () => {
+  // stderr's share, at a small cap
+  const so = lines(20000)
+  const se = 'e'.repeat(1000)
+  const cfg = { cap: 500, head: 0.6, minSaving: 0 }
+  const b = splitBudget(500, so.length, se.length)
+  assert.deepEqual(b, { out: 400, err: 100 })
+  const r = trimResult({ stdout: so, stderr: se }, cfg, '/p')
+  const m = marker(se.length, se.length, '/p').length
+  assert.ok(r.stdout.length <= 400)
+  assert.equal(r.stderr.length, 265, '120 head + 65 marker + 80 tail')
+  assert.ok(r.stderr.length > b.err, 'the bound is real')
+  assert.ok(r.stderr.length - b.err <= 200 + m)
+  assert.ok(r.after <= 500 + 200 + m)
+  // stdout's share, at the default cap
+  const so2 = 'o'.repeat(3000)
+  const se2 = lines(12000)
+  const cfg2 = { cap: 8000, head: 0.6, minSaving: 1500 }
+  const b2 = splitBudget(8000, so2.length, se2.length)
+  const r2 = trimResult({ stdout: so2, stderr: se2 }, cfg2, '/p')
+  const m2 = marker(so2.length, so2.length, '/p').length
+  assert.ok(b2.out < 200 + m2, 'the default cap reaches the clamp through stdout')
+  assert.ok(r2.stdout.length > b2.out)
+  assert.ok(r2.stdout.length - b2.out <= 200 + m2)
+  assert.ok(r2.stderr.length <= b2.err)
+})
+
 test('trimResult: null under the cap, null when the saving is below minSaving, a cut otherwise', () => {
   const cfg = { cap: 8000, head: 0.6, minSaving: 1500 }
   assert.equal(trimResult({ stdout: 'x'.repeat(7000), stderr: '' }, cfg, null), null)

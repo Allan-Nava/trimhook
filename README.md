@@ -52,8 +52,26 @@ The marker reads, verbatim:
 … [trimhook: 21,540 of 29,540 characters elided. Full output: ~/.trimhook/spill/<session>/<tool-use>.txt] …
 ```
 
-`stdout` and `stderr` share one cap, split in proportion to their sizes with a floor for
-`stderr`, so a short error is never squeezed out by a long log.
+`stdout` and `stderr` share one cap, split in proportion to their sizes with a floor:
+`stderr` gets at least 20% of the cap, or all of itself when it is shorter, so a short
+error is never squeezed out by a long log. Each stream over its share is cut on its own,
+with its own marker, so a result with both streams cut carries two. A share too small to
+hold a marker still keeps 200 characters of its stream, so a tiny share — a few hundred
+characters of one stream beside a huge other — can exceed its slice by at most 200
+characters plus the marker's length. That bound is accepted, tested
+(`test/trim.test.mjs`) and not fixed: holding the cap to the character there would mean
+dropping a stream.
+
+`minSaving` (1,500 by default) counts the overflow above the cap: a result is cut only
+when it is over the cap by at least that much, so at the default cap nothing under 9,500
+characters is cut. A cut snaps to a line boundary within 200 characters, keeping less
+rather than more, so a cut result can come in up to 200 characters per cut under the cap.
+
+**Fast enough to need no deadline.** The hook runs under a 5 s timeout (`"timeout": 5` in
+both hooks files). Measured on 2026-09-28 at `fb4f5b6`, Node 23.3.0, Node's start-up
+included: a 150,000-character result — one body the collapse folds to a single line, one
+of 30,000 distinct lines cut to the cap, four rounds of ten each — took p50 75-83 ms and
+at most 156 ms, about 3% of the timeout, so the handler sets no deadline of its own.
 
 **What a failure does.** On Claude Code a tool call that fails — a Bash command that exits
 non-zero, a `Read` or `WebFetch` that errors — fires `PostToolUseFailure` instead of

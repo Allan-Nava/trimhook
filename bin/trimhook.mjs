@@ -112,6 +112,18 @@ const CAP_RULE = [
   [/pooled\s+rate/, 'pooled rate (reported, does not vote)'],
   [/upper\s+bound/, 'weak spot (an upper bound for 8,000)'],
 ]
+// D8: what the code guarantees and where the cap bends, each keyed on its number
+// (bin/lib/trim.mjs:21-28, :34, :48, :56; hooks/hooks.json timeout; timing 2026-09-28).
+const EXACT_HEADING = '## What it does, exactly'
+const EXACT_TERMS = [
+  [/stderr`?\s+gets\s+at\s+least\s+20%/, 'the stderr floor (at least 20% of the cap)'],
+  [/overflow\s+above\s+the\s+cap/, 'what minSaving counts (the overflow above the cap)'],
+  [/within\s+200\s+characters/, 'the line-snap slack (within 200 characters)'],
+  [/at\s+most\s+200\s+characters\s+plus\s+the\s+marker/, 'the two-stream bound (at most 200 characters plus the marker)'],
+  [/under\s+a\s+5\s+s\s+timeout/, 'the hook timeout (5 s)'],
+  [/p50\s+75-83\s+ms/, 'the measured p50 (75-83 ms)'],
+  [/156\s+ms/, 'the measured maximum (156 ms)'],
+]
 
 function check() {
   const errors = []
@@ -143,6 +155,9 @@ function check() {
     const rule = readmeSection(readme, CAP_RULE_HEADING)
     if (rule === null) fail(`README.md must state the default-cap rule under "${CAP_RULE_HEADING}" (TH-10)`)
     else for (const [re, what] of CAP_RULE) if (!re.test(rule)) fail(`README.md must state the default-cap rule's ${what} under "${CAP_RULE_HEADING}"`)
+    const exact = readmeSection(readme, EXACT_HEADING)
+    if (exact === null) fail(`README.md must keep the section "${EXACT_HEADING}"`)
+    else for (const [re, what] of EXACT_TERMS) if (!re.test(exact)) fail(`README.md must state ${what} under "${EXACT_HEADING}"`)
   }
   for (const m of ['config.mjs', 'harness.mjs', 'trim.mjs', 'store.mjs', 'handlers.mjs', 'report.mjs', 'doctor.mjs']) if (!existsSync(join(ROOT, 'bin', 'lib', m))) fail(`bin/lib/${m} is missing`)
   // The site's og:image named this file for weeks before it existed, and a card that
