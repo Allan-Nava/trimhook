@@ -31,7 +31,9 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
 - **Spills the whole output to a file** under `~/.trimhook` and names it in the elision
   marker, so the model can `Read` the part it did not see, on demand, instead of
   re-running the command. Only a result that is cut is written; if the file cannot be
-  written, the result is left whole.
+  written, the result is left whole. A `Read` of that file, or a Bash command that names
+  it (`sed -n 1400,1600p <path>`, `grep`, `cat`), comes back whole: a spill is never cut
+  again.
 - **Measures.** One JSON line per result, sizes only, and `trimhook report` prints what
   was saved, by command. A result left whole is logged too, as `kept`, with a flag when
   there is a reason: `spillRead` (a read of a spill file), `spillFailed` (the spill could

@@ -58,6 +58,8 @@ CONTRIBUTING.md        local loop, benchmark protocol, release runbook
    elided without its whole output spilled; if the spill fails, the result is left alone.
    The converse holds too (TH-24): the path is decided first and the file written only
    when the cut is taken, so a result the model saw in full leaves no copy on disk.
+   And a read of a spill file — a `Read` under `<data>/spill/`, or a Bash command naming
+   it — comes back whole, never cut again (TH-26).
 4. **Sizes only in the log.** The audit log never carries output text; the command is
    reduced to its first word or two. The spill files hold the output and are 0600.
 5. **Under the harness's ceiling.** Claude Code's `BASH_MAX_OUTPUT_LENGTH` (default

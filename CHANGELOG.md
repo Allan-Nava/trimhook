@@ -41,6 +41,12 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   (TH-12, TH-20).
 
 ### Fixed
+- A read of a spill file comes back whole. Since TH-12 a `Read` is cut like a Bash
+  result, so the model's read of the spill — the file that exists so it can see the
+  middle — was cut again, a second spill written and the middle still unseen. A `Read`
+  whose path lies under `<data>/spill/`, and a Bash command that names that directory
+  (absolute, or `~/…`), now pass through whole and are logged `kept` with
+  `spillRead: true`; `WebFetch` is never exempt (TH-26).
 - The spill file is written only when the cut is taken. It used to be written before
   the decision, so every result of a listed tool left a whole copy on disk for
   `spillTtlDays` — on one install, 2,551 files for 47 cuts. The same reorder restores
