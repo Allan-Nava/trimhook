@@ -137,7 +137,7 @@ keeps the number passes, a lost number fails.
 End to end in Claude Code: install the checkout (`/plugin marketplace add .`,
 `/plugin install trimhook@trimhook`), run a command that prints more than 8,000
 characters (`seq 1 5000`), and read the result: head, one marker line with a path, tail;
-`trimhook report` shows one `trimmed`. Under Codex: `trimhook print-hooks >
+`trimhook report` shows one `trimmed`. Under Codex, with the default `codex.mode: continue`, the same run is logged `unconfirmed` — Codex 0.155.1 does not apply that reply (TH-9, TH-34): `trimhook print-hooks >
 .codex/hooks.json` in a scratch repo, `codex.replace: true` in `~/.trimhook.json`, same
 command through `codex exec --approve-for-me --dangerously-bypass-hook-trust '…' < /dev/null`.
 

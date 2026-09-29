@@ -39,7 +39,10 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
   it (`sed -n 1400,1600p <path>`, `grep`, `cat`), comes back whole: a spill is never cut
   again.
 - **Measures.** One JSON line per result, sizes only, and `trimhook report` prints what
-  was saved, by command. A result left whole is logged too, as `kept`, with a flag when
+  was saved, by command. "Saved" counts only a cut the model received (`trimmed`); a cut
+  measured in audit mode or on Codex without the replacement (`would-trim`), or a Codex
+  reply not known to apply (`unconfirmed`, below), is shown apart as "would save", never
+  as saved. A result left whole is logged too, as `kept`, with a flag when
   there is a reason: `spillRead` (a read of a spill file), `spillFailed` (the spill could
   not be written) or `error` (trimhook threw — the error's code, never its message).
   `report` counts the flags, and `doctor` warns on the last two.
@@ -122,7 +125,9 @@ Both shapes were tried live on 2026-09-29, Codex 0.155.1 (TH-9, `evals/codex-liv
 `decision: block`: 3 of 3 prefixed "Script failed", router error= in 3 of 3, head and tail quoted in 3 of 3.
 So the default stays off: on that version `continue: false` changes nothing the model
 sees, and `decision: block` replaces the text only behind an error prefix. An opt-in
-still gets `codex.mode: continue` unless it sets `block`.
+still gets `codex.mode: continue` unless it sets `block`; such a result is logged
+`unconfirmed`, not `trimmed`, so `report` never counts a saving the model did not get
+(TH-34).
 It answers `continue: false` by default. `"mode": "block"` answers `decision: block`
 instead, which Codex 0.155.1 records as a failed tool call — the model reads
 `Script failed` and `Script error:` before the trimmed text (2026-09-23) — so it is there

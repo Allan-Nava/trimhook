@@ -88,7 +88,11 @@ test('Codex: measured only until codex.replace is on; then continue false (defau
   assert.ok(blocked.reason.endsWith('\n' + blocked.systemMessage))
   assert.match(blocked.systemMessage, /^trimhook: /)
   assert.equal('continue' in blocked, false)
-  assert.deepEqual(log(d).map((r) => r.outcome), ['would-trim', 'trimmed', 'trimmed'])
+  // TH-34: TH-9 showed Codex 0.155.1 gives the model the whole output after a
+  // `continue: false` reply, so that result is logged `unconfirmed`, never `trimmed`;
+  // `block` does replace the text, so it stays `trimmed`.
+  assert.deepEqual(log(d).map((r) => r.outcome), ['would-trim', 'unconfirmed', 'trimmed'])
+  assert.ok(existsSync(log(d)[1].spill), 'the reply names a spill, so it is written (rule 3)')
   assert.equal(log(d)[2].harness, 'codex')
 })
 

@@ -4,18 +4,23 @@ import { DEFAULTS } from './config.mjs'
 import { trimResult } from './trim.mjs'
 
 export function summarize(records) {
-  const s = { results: 0, trimmed: 0, wouldTrim: 0, before: 0, after: 0, byCommand: {}, byTool: {}, flags: { spillRead: 0, spillFailed: 0, error: 0 } }
+  const s = { results: 0, trimmed: 0, wouldTrim: 0, unconfirmed: 0, before: 0, after: 0, saved: 0, wouldSave: 0, byCommand: {}, byTool: {}, flags: { spillRead: 0, spillFailed: 0, error: 0 } }
   for (const r of records) {
     s.results += 1
     s.before += r.before ?? 0
     s.after += r.after ?? r.before ?? 0
     if (r.outcome === 'trimmed') s.trimmed += 1
     if (r.outcome === 'would-trim') s.wouldTrim += 1
+    if (r.outcome === 'unconfirmed') s.unconfirmed += 1
     if (r.spillRead === true) s.flags.spillRead += 1
     if (r.spillFailed === true) s.flags.spillFailed += 1
     if (typeof r.error === 'string' && r.error) s.flags.error += 1
     if (r.outcome !== 'kept') {
       const saved = (r.before ?? 0) - (r.after ?? 0)
+      // TH-34: only a cut the model received is saved; audit, Codex without replace and
+      // an unconfirmed Codex shape are what the cut would have saved.
+      if (r.outcome === 'trimmed') s.saved += saved
+      else s.wouldSave += saved
       const c = (s.byCommand[r.command ?? '?'] ??= { n: 0, saved: 0 })
       c.n += 1
       c.saved += saved
@@ -27,7 +32,6 @@ export function summarize(records) {
       t.saved += saved
     }
   }
-  s.saved = s.before - s.after
   return s
 }
 
@@ -78,11 +82,11 @@ export function render(s) {
   const tools = Object.entries(s.byTool ?? {}).sort((a, b) => b[1].saved - a[1].saved)
   return [
     `## trimhook — ${k(s.results)} tool results`,
-    `trimmed ${k(s.trimmed)} · would trim (audit or Codex without replace) ${k(s.wouldTrim)} · kept ${k(s.results - s.trimmed - s.wouldTrim)}`,
-    `characters: ${k(s.before)} before → ${k(s.after)} after · saved ${k(s.saved)} (≈ ${k(Math.round(s.saved / 4))} tokens at four characters each)`,
+    `trimmed ${k(s.trimmed)} · would trim (audit or Codex without replace) ${k(s.wouldTrim)}${s.unconfirmed ? ` · unconfirmed (a Codex reply not known to apply) ${k(s.unconfirmed)}` : ''} · kept ${k(s.results - s.trimmed - s.wouldTrim - s.unconfirmed)}`,
+    `characters: ${k(s.before)} before · saved ${k(s.saved)} (≈ ${k(Math.round(s.saved / 4))} tokens at four characters each)${s.wouldSave ? ` · would save ${k(s.wouldSave)} more, not applied` : ''}`,
     flagLine(s.flags),
     tools.length > 1 ? `by tool: ${tools.map(([t, v]) => `${t} ${k(v.saved)} (${v.n})`).join(' · ')}` : '',
-    top.length ? `top commands by characters saved: ${top.map(([c, v]) => `\`${c}\` ${k(v.saved)} (${v.n})`).join(' · ')}` : '',
+    top.length ? `top commands by characters cut (applied or not): ${top.map(([c, v]) => `\`${c}\` ${k(v.saved)} (${v.n})`).join(' · ')}` : '',
   ].filter(Boolean).join('\n')
 }
 

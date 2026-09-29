@@ -94,19 +94,6 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   `evals/results/` hold counts only (TH-15).
 
 ### Changed
-- `doctor` reads `bashOutputMaxChars` from the four Claude Code settings files — managed,
-  `.claude/settings.local.json`, `.claude/settings.json`, `~/.claude/settings.json`; the
-  highest level wins, clamped to 4,000-128,000 — and compares trimhook's cap against it,
-  falling back to `BASH_MAX_OUTPUT_LENGTH` only when none sets it, since Claude Code then
-  ignores the variable. `doctor` also says its harness verdict comes from the environment
-  only, and the README names what it cannot see: `--settings` on the command line and
-  managed policy that is not a file (TH-1, D8).
-- The README states the numbers the code runs on and where the cap bends: `stderr`'s 20%
-  floor, `minSaving` as the overflow above the cap, the 200-character line snap, the
-  two-marker cut and its bound (a tiny share may exceed its slice by at most 200
-  characters plus the marker), and the 5 s hook timeout against a measured p50 of
-  75-83 ms and a maximum of 156 ms (2026-09-28). `check` fails when any of them goes
-  missing, and a test pins the bound (TH-1, D8).
 - **Breaking for repository config files.** A repository's `.trimhook.json` (or
   `.claude/` and `.codex/trimhook.json`, or the file `TRIMHOOK_CONFIG` names) may no
   longer set `mode`, `spill`, `spillTtlDays` or `codex.replace` — all accepted in 0.1.0 —
@@ -115,6 +102,25 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   refused key keeps the value from `~/.trimhook.json` or the default, and `doctor` prints
   a `BAD` line: "`<path>: <key> may only be set in ~/.trimhook.json or the environment`"
   (TH-1, D4).
+- `doctor` reads `bashOutputMaxChars` from the four Claude Code settings files — managed,
+  `.claude/settings.local.json`, `.claude/settings.json`, `~/.claude/settings.json`; the
+  highest level wins, clamped to 4,000-128,000 — and compares trimhook's cap against it,
+  falling back to `BASH_MAX_OUTPUT_LENGTH` only when none sets it, since Claude Code then
+  ignores the variable. `doctor` also says its harness verdict comes from the environment
+  only, and the README names what it cannot see: `--settings` on the command line and
+  managed policy that is not a file (TH-1, D8).
+- `trimhook report`: "saved" counts only cuts the model received (`trimmed`). Cuts
+  measured in audit mode or on Codex without the replacement (`would-trim`) are shown
+  apart as "would save", and so is a new outcome, `unconfirmed`: a Codex result answered
+  with `continue: false`, which TH-9 showed Codex 0.155.1 does not apply. Before, every
+  cut counted as saved, so an audit week or an opted-in Codex looked like savings. The
+  top-commands line now says "characters cut (applied or not)" (TH-34).
+- The README states the numbers the code runs on and where the cap bends: `stderr`'s 20%
+  floor, `minSaving` as the overflow above the cap, the 200-character line snap, the
+  two-marker cut and its bound (a tiny share may exceed its slice by at most 200
+  characters plus the marker), and the 5 s hook timeout against a measured p50 of
+  75-83 ms and a maximum of 156 ms (2026-09-28). `check` fails when any of them goes
+  missing, and a test pins the bound (TH-1, D8).
 - Codex: the replacement stays opt-in. TH-9 tried both shapes live on Codex 0.155.1
   (2026-09-29): `continue: false`: 0 of 3 passed — runs 1-3: untrimmed, Codex
   logged "hook: PostToolUse Stopped" yet gave the model the whole 28,893-character

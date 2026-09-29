@@ -55,7 +55,14 @@ export async function postToolUse(input, deps = {}) {
   }
   if (path && !replaced) path = null
   const elided = t ? t.elided : 0
-  appendRecord(dir, { ...record, outcome: replaced ? 'trimmed' : 'would-trim', after, elided, collapsed, spill: path })
+  // TH-34: a replacement is `trimmed` only when the harness is known to apply it. TH-9
+  // (`evals/codex-live.md`, 2026-09-29) showed Codex 0.155.1 reads a `continue: false`
+  // reply and still gives the model the whole output, so that one is `unconfirmed`: the
+  // reply is still sent, and the spill it names is still written (rule 3), in case a
+  // later Codex applies it — but `report` never counts it as saved.
+  const unconfirmed = replaced && harness === 'codex' && cfg.codex.mode === 'continue'
+  const outcome = !replaced ? 'would-trim' : unconfirmed ? 'unconfirmed' : 'trimmed'
+  appendRecord(dir, { ...record, outcome, after, elided, collapsed, spill: path })
   if (!replaced) return null
   const removed = [elided && `${elided.toLocaleString('en-US')} characters elided`, collapsed && `${collapsed.toLocaleString('en-US')} in repeated lines`].filter(Boolean).join(', ')
   const note = `trimhook: ${removed} from this result${path ? `; the whole output is at ${path}` : ''}.`

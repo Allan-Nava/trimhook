@@ -251,10 +251,30 @@ test('report sums sizes and ranks commands', () => {
     { outcome: 'would-trim', before: 20000, after: 8000, command: 'git log' },
   ])
   assert.equal(s.results, 3)
-  assert.equal(s.saved, 34000)
-  assert.match(render(s), /saved 34,000/)
+  // TH-34: saved is what reached the model; a would-trim is measured, not saved.
+  assert.equal(s.saved, 22000)
+  assert.equal(s.wouldSave, 12000)
+  assert.match(render(s), /saved 22,000/)
+  assert.match(render(s), /would save 12,000/)
   assert.match(render(s), /`npm test` 22,000 \(1\)/)
   assert.equal(render(summarize([])), 'no results logged yet')
+})
+
+test('report: an unconfirmed Codex result is counted apart and never as saved (TH-34)', () => {
+  const s = summarize([
+    { outcome: 'trimmed', before: 10000, after: 8000, command: 'npm test', tool: 'Bash' },
+    { outcome: 'unconfirmed', before: 28893, after: 7996, command: 'seq 1', tool: 'Bash', harness: 'codex' },
+  ])
+  assert.equal(s.trimmed, 1)
+  assert.equal(s.unconfirmed, 1)
+  assert.equal(s.saved, 2000)
+  assert.equal(s.wouldSave, 20897)
+  const out = render(s)
+  assert.match(out, /unconfirmed \(a Codex reply not known to apply\) 1/)
+  assert.match(out, /top commands by characters cut \(applied or not\)/)
+  assert.match(out, /saved 2,000/)
+  assert.match(out, /would save 20,897/)
+  assert.doesNotMatch(out, /saved 22,897/)
 })
 
 test('report: flag counts for spillRead, spillFailed and error', () => {
