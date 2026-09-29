@@ -18,7 +18,13 @@
 //
 //   node evals/reads.mjs                 the counts
 //   node evals/reads.mjs --window 12     how many later tool uses count as "after"
+//   node evals/reads.mjs --holdout 0.1   also the control group (TH-31): with the share the
+//                                        week ran with, the long uncut results the hook held
+//                                        out, and their re-runs beside the cuts'
 //   node evals/reads.mjs --json          also write evals/results/<date>-reads.json
+//
+// After a cut Read it also counts (TH-28) pages of the same file (a Read with offset or
+// limit) and Edits of it that failed — the cost of a middle an Edit needed.
 //
 // Counts only, nothing leaves the machine, nothing is written without --json.
 //
@@ -34,6 +40,8 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { commandPrefix } from '../bin/lib/handlers.mjs'
+import { heldOut } from '../bin/lib/holdout.mjs'
+import { readsInstructions } from '../bin/lib/store.mjs'
 import { MARKER_RE } from '../bin/lib/trim.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -45,6 +53,9 @@ const arg = (name, fallback) => {
 // "After" has to end somewhere: a command re-run forty turns later is a new intention,
 // not a retry. Twelve tool uses is about two exchanges.
 const WINDOW = arg('window', 12)
+// TH-31: the share the week ran with (`holdout` in ~/.trimhook.json). The hook and this
+// scan agree on who was held out by hashing the same id, so the log carries no id.
+const HOLDOUT = arg('holdout', 0)
 // D3's subset: the cuts 8,000 would also have made — post-collapse size at least the
 // 8,000 cap plus the 1,500 minSaving (trim.mjs:56). Fixed on purpose: it names the
 // 8,000 rung of the rule, not whatever DEFAULTS.cap is today.
@@ -121,16 +132,23 @@ function scanClaude(file) {
     for (const c of msg.content) {
       if (c?.type === 'tool_use') {
         index.set(c.id, uses.length)
-        uses.push({ at: uses.length, name: c.name, cmd: c.name === 'Bash' ? String(c.input?.command ?? '') : '', path: c.input?.file_path ?? null, url: c.input?.url ?? null })
+        uses.push({ at: uses.length, id: c.id, name: c.name, cmd: c.name === 'Bash' ? String(c.input?.command ?? '') : '', path: c.input?.file_path ?? null, url: c.input?.url ?? null, paged: c.input?.offset != null || c.input?.limit != null, size: 0, cut: false, error: false })
       }
       if (c?.type === 'tool_result') {
         const text = typeof c.content === 'string' ? c.content : Array.isArray(c.content) ? c.content.map((x) => x?.text ?? '').join('') : ''
-        const m = markers(text)
-        if (!m) continue
         // `at` is the tool use this result answered, found by id: with parallel tool uses
         // the last use is not the one answered, and "after the cut" means after its call.
         const at = index.get(c.tool_use_id) ?? uses.length - 1
         const u = uses[at]
+        // TH-31, TH-28: every result's size (the control group is the long uncut ones) and
+        // whether it was an error (a failed Edit is the cost of a hidden middle).
+        if (u) {
+          u.size = text.length
+          u.error = c.is_error === true || text.includes('<tool_use_error>')
+        }
+        const m = markers(text)
+        if (!m) continue
+        if (u) u.cut = true
         cuts.push({ at, tool: u?.name ?? 'Bash', ...m, cmd: u?.cmd ?? '', path: u?.path ?? null, url: u?.url ?? null })
       }
     }
@@ -164,11 +182,14 @@ function scanCodex(file) {
     if (!p || typeof p !== 'object') continue
     if (p.type === 'custom_tool_call' || p.type === 'function_call') {
       index.set(p.call_id, uses.length)
-      uses.push({ at: uses.length, name: 'Bash', cmd: String((p.type === 'custom_tool_call' ? p.input : p.arguments) ?? ''), path: null, url: null })
+      uses.push({ at: uses.length, id: p.call_id, name: 'Bash', cmd: String((p.type === 'custom_tool_call' ? p.input : p.arguments) ?? ''), path: null, url: null, paged: false, size: 0, cut: false, error: false })
     } else if (p.type === 'custom_tool_call_output' || p.type === 'function_call_output') {
-      const m = markers(codexText(p.output))
-      if (!m) continue
+      const text = codexText(p.output)
       const at = index.get(p.call_id) ?? uses.length - 1
+      if (uses[at]) uses[at].size = text.length
+      const m = markers(text)
+      if (!m) continue
+      if (uses[at]) uses[at].cut = true
       cuts.push({ at, tool: 'Bash', ...m, cmd: uses[at]?.cmd ?? '', path: null, url: null })
     }
   }
@@ -232,6 +253,21 @@ const byHarness = { claude: 0, codex: 0 }
 const subset = bucket()
 const byTool = new Map()
 const byCommand = new Map()
+// TH-28: after a cut Read, the same file paged (offset/limit) and Edits of it that failed.
+const afterRead = () => ({ reads: 0, paged: 0, edits: 0, failed: 0 })
+const cutReads = afterRead()
+const heldReads = afterRead()
+const readCost = (b, own, window) => {
+  b.reads++
+  if (window.some((u) => u.name === 'Read' && u.path === own.path && u.paged)) b.paged++
+  const edits = window.filter((u) => (u.name === 'Edit' || u.name === 'MultiEdit') && u.path === own.path)
+  b.edits += edits.length
+  b.failed += edits.filter((u) => u.error).length
+}
+// TH-31: the control group, per tool.
+let held = 0
+let heldRerun = 0
+const heldByTool = new Map()
 
 const walks = [
   [join(homedir(), '.claude', 'projects'), scanClaude],
@@ -258,6 +294,7 @@ for (const [root, scan] of walks) {
       const read = window.some((u) => isSpillRead(u, cut.spill))
       const late = !read && after.some((u) => isSpillRead(u, cut.spill))
       const rerun = window.some((u) => isRerun(u, cut))
+      if (cut.tool === 'Read' && cut.path) readCost(cutReads, cut, window)
       const sub = cut.size >= SUBSET
       if (read) readBack++
       if (late) readBackLate++
@@ -273,6 +310,25 @@ for (const [root, scan] of walks) {
       byCommand.set(key, b)
     })
     if (counted) sessions++
+    // TH-31: a long result that carries no marker and whose id falls in the holdout share
+    // is one the hook would have cut and held out. Spill reads (D9) and instruction files
+    // (TH-29) are left whole for their own reasons and are not part of it.
+    if (HOLDOUT > 0) {
+      for (const u of uses) {
+        if (u.cut || u.size < SUBSET || !ORDER.includes(u.name) || !heldOut(u.id, HOLDOUT)) continue
+        if (u.name === 'Read' && readsInstructions({ tool: 'Read', input: { file_path: u.path } })) continue
+        if (cuts.some((c) => isSpillRead(u, c.spill))) continue
+        held++
+        const window = uses.slice(u.at + 1, u.at + 1 + WINDOW)
+        const rerun = window.some((w) => isRerun(w, { tool: u.name, cmd: u.cmd, path: u.path, url: u.url }))
+        if (rerun) heldRerun++
+        if (u.name === 'Read' && u.path) readCost(heldReads, u, window)
+        const t = heldByTool.get(u.name) ?? { held: 0, reruns: 0 }
+        t.held++
+        if (rerun) t.reruns++
+        heldByTool.set(u.name, t)
+      }
+    }
   }
 }
 
@@ -312,12 +368,42 @@ if (cutCount) {
     'A cap that is never read back and never re-run is not costing the model anything and could go lower. One that is read back often is too low, and the characters it saves are being paid for twice.',
   )
 }
+if (cutReads.reads || heldReads.reads) {
+  out.push(
+    '',
+    `## After a cut Read (TH-28, window ${WINDOW})`,
+    '',
+    `- Cut Reads: ${k(cutReads.reads)}. Paged the same file (offset or limit) within the window: ${k(cutReads.paged)} (${pct(cutReads.paged, cutReads.reads)}).`,
+    `- Edits of that file within the window: ${k(cutReads.edits)}; failed: ${k(cutReads.failed)} (${pct(cutReads.failed, cutReads.edits)} of edits).`,
+  )
+  if (heldReads.reads) out.push(`- Held-out Reads, for comparison: ${k(heldReads.reads)}; paged ${k(heldReads.paged)} (${pct(heldReads.paged, heldReads.reads)}); edits ${k(heldReads.edits)}, failed ${k(heldReads.failed)} (${pct(heldReads.failed, heldReads.edits)} of edits).`)
+  out.push('', 'A cut Read the model pages through, or an Edit that fails on the file it could not see, is what cutting Read costs; TH-28 decides from these whether Read stays in `tools`.')
+}
+if (HOLDOUT > 0) {
+  const plural = (n) => `${k(n)} result${n === 1 ? '' : 's'}`
+  out.push(
+    '',
+    `## The control group (TH-31, holdout ${HOLDOUT})`,
+    '',
+    `- Held out: ${plural(held)} over 9,500 characters, left whole. Ran again within the window: ${k(heldRerun)} (${pct(heldRerun, held)}).`,
+    `- Cut, for comparison: ${k(cutCount)}. Ran again within the window: ${k(reran)} (${pct(reran, cutCount)}).`,
+  )
+  if (heldByTool.size) {
+    out.push('', '| Tool | Held out | Ran again | Cut | Ran again |', '|---|---:|---:|---:|---:|')
+    for (const t of [...new Set([...heldByTool.keys(), ...byTool.keys()])].sort(byOrder)) {
+      const h = heldByTool.get(t) ?? { held: 0, reruns: 0 }
+      const c = byTool.get(t) ?? bucket()
+      out.push(`| ${t} | ${k(h.held)} | ${pct(h.reruns, h.held)} | ${k(c.cuts)} | ${pct(c.reruns, c.cuts)} |`)
+    }
+  }
+  out.push('', 'The two groups are the same kind of result, one cut and one not: the difference between their re-run rates is what the cut costs, measured rather than estimated. Held-out results cannot be read back — there is no spill — so only re-runs compare.')
+}
 console.log(out.join('\n'))
 
 if (argv.includes('--json')) {
   mkdirSync(join(HERE, 'results'), { recursive: true })
   const f = join(HERE, 'results', `${new Date().toISOString().slice(0, 10)}-reads.json`)
-  const json = { at: new Date().toISOString(), window: WINDOW, subsetMin: SUBSET, floor: FLOOR, sessions, byHarness, cuts: cutCount, skipped, elided, readBack, readBackLate, reran, subset, byTool: Object.fromEntries(byTool), byCommand: Object.fromEntries(byCommand), verdict: v }
+  const json = { at: new Date().toISOString(), window: WINDOW, subsetMin: SUBSET, floor: FLOOR, sessions, byHarness, cuts: cutCount, skipped, elided, readBack, readBackLate, reran, subset, byTool: Object.fromEntries(byTool), byCommand: Object.fromEntries(byCommand), verdict: v, afterRead: { cut: cutReads, held: heldReads }, holdout: HOLDOUT ? { share: HOLDOUT, held, heldRerun, byTool: Object.fromEntries(heldByTool) } : null }
   writeFileSync(f, JSON.stringify(json, null, 2))
   console.log(`\nwritten ${f}`)
 }

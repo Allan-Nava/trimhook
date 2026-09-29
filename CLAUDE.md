@@ -24,8 +24,10 @@ bin/lib/               config (defaults → ~/.trimhook.json → repo file or TR
                        env, validated; the repo layer classed per key), harness (detection
                        by the hook's own signals first, both answer shapes), trim (the pure
                        cut: budgets, line-snapped head and tail, the marker), store
-                       (sizes-only log, spill files 0600, pruning), handlers (the
-                       orchestration), report, doctor
+                       (sizes-only log, spill files 0600, pruning, the spill-read and
+                       instruction-file exemptions), holdout (TH-31: the control group,
+                       a hash of the tool-use id), handlers (the orchestration), report,
+                       doctor
 test/                  node:test suites — the cut, both harness shapes, spill, config, doctor,
                        and an end-to-end spawn of the real CLI; `npm test` runs them after `check`
 evals/local.mjs        the transcript benchmark: sizes only, cap sweep, top commands;

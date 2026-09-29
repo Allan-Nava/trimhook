@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { capFor, loadConfig, REPO_CLASS, RULES } from '../bin/lib/config.mjs'
+import { capFor, DEFAULTS, loadConfig, REPO_CLASS, RULES } from '../bin/lib/config.mjs'
 import { doctor } from '../bin/lib/doctor.mjs'
 import { dataDir, detectHarnessSignal, readResponse, replacementOutput } from '../bin/lib/harness.mjs'
 import { recompute, render, renderAt, summarize } from '../bin/lib/report.mjs'
@@ -260,6 +260,20 @@ test('report sums sizes and ranks commands', () => {
   assert.equal(render(summarize([])), 'no results logged yet')
 })
 
+test('config: holdout is a user-level number in [0, 0.5], denied to the repository layer (TH-31)', () => {
+  assert.equal(DEFAULTS.holdout, 0)
+  assert.equal(RULES.holdout(0.1), true)
+  assert.notEqual(RULES.holdout(0.9), true)
+  assert.notEqual(RULES.holdout('0.1'), true)
+  assert.equal(REPO_CLASS.holdout, 'denied')
+})
+
+test('report: held-out results are counted as a flag (TH-31)', () => {
+  const s = summarize([{ outcome: 'kept', before: 20000, after: 20000, holdout: true }])
+  assert.equal(s.flags.holdout, 1)
+  assert.match(render(s), /holdout 1/)
+})
+
 test('report: instruction files left whole are counted as a flag (TH-29)', () => {
   const s = summarize([{ outcome: 'kept', before: 20000, after: 20000, tool: 'Read', instructions: true }])
   assert.equal(s.flags.instructions, 1)
@@ -291,7 +305,7 @@ test('report: flag counts for spillRead, spillFailed and error', () => {
     { outcome: 'kept', error: 'ENOSPC' },
     { outcome: 'trimmed', before: 30000, after: 8000, command: 'npm test' },
   ])
-  assert.deepEqual(s.flags, { spillRead: 1, spillFailed: 1, error: 2, instructions: 0 })
+  assert.deepEqual(s.flags, { spillRead: 1, spillFailed: 1, error: 2, instructions: 0, holdout: 0 })
   assert.equal(s.saved, 22000)
   assert.match(render(s), /^flags on kept results: spillRead 1 · spillFailed 1 · error 2$/m)
   assert.doesNotMatch(render(summarize([{ outcome: 'trimmed', before: 30000, after: 8000 }])), /flags on kept results/)

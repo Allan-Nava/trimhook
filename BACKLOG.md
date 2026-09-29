@@ -301,7 +301,11 @@ the cut would take 2.42 M characters.
   week: after a cut `Read`, count the pages read with `offset`/`limit` and the Edits that
   fail on the same path (extend `evals/reads.mjs`). Then decide, with the number: keep
   `Read` in `tools`, give it its own higher cap (`perCommand: { "Read": … }` already
-  exists), or take it out. <!-- th: prio=high size=M labels=benchmark,hook -->
+  exists), or take it out. **State, 2026-09-29:** the instrument is built — `node evals/reads.mjs` prints, after
+  a cut Read, the pages of the same file and the Edits of it that failed, and beside them
+  the held-out Reads when TH-31's holdout is on. The local transcripts hold no cut Read
+  yet (the copy installed here predates TH-12), so the number comes from TH-10's week;
+  the decision on Read's place in `tools` waits for it. <!-- th: prio=high size=M labels=benchmark,hook -->
 - [x] **TH-29 — Instruction files are never cut**: headroom excludes Claude Code's `Skill`
   tool because a lossy pass inverts instructions — on 40 real `SKILL.md` bodies only 73.5%
   of negations and 65.5% of modals survived (its `config.py`). trimhook's cut does not drop
@@ -322,7 +326,7 @@ the cut would take 2.42 M characters.
   identical stdout. **Done 2026-09-29:** three tests in `test/handlers.test.mjs`; the one gap —
   a spill named from the clock when the event has no tool-use id — now named from a
   content hash. <!-- th: prio=med size=S labels=tests ver=main -->
-- [ ] **TH-31 — A holdout, so the cost is measured rather than estimated**: headroom
+- [x] **TH-31 — A holdout, so the cost is measured rather than estimated**: headroom
   reports its output savings as an estimate with a confidence range, and offers holding
   out 10% of conversations for a measured number. trimhook's week (TH-10) has the same
   gap: a re-read rate says what happened after a cut, not what would have happened
@@ -330,7 +334,11 @@ the cut would take 2.42 M characters.
   and logged `kept, holdout: true`, chosen from a hash of the tool-use id so a run is
   reproducible; `evals/reads.mjs` then compares re-reads, re-runs and the tokens of the
   following turn between the two groups. Denied to the repository layer (D4): it is a
-  measurement knob. <!-- th: prio=med size=M labels=benchmark,hook -->
+  measurement knob. **Done 2026-09-29:** `bin/lib/holdout.mjs`, the `holdout` key, `--holdout` in
+  `evals/reads.mjs`. The comparison is on re-runs — a held-out result has no spill to read
+  back — and the next turn's tokens are left out: in a transcript they move with
+  everything else in the turn, so they would not isolate the cut.
+  <!-- th: prio=med size=M labels=benchmark,hook ver=main -->
 - [x] **TH-32 — JSON-aware cuts, from headroom's SmartCrusher**: headroom's JSON crusher
   reaches 90% on repeated arrays, and a head-and-tail cut of a JSON document leaves it
   unbalanced. **Dropped on the measurement:** 2 Bash results that are whole JSON

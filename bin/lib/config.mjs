@@ -17,6 +17,7 @@ export const DEFAULTS = Object.freeze({
   perCommand: {}, // { "git log": 4000, "npm test": 16000 } — by the command's first word or first two
   spill: true, // write the whole output to a file the model can read
   spillTtlDays: 7, // spill files older than this are pruned
+  holdout: 0, // TH-31: share of cuttable results left whole as a control group for the live week; 0 = none
   // D5: `continue` answers {continue: false, stopReason}; `block` answers decision:
   // block, which Codex 0.155.1 logs as a failed call ("Script failed …", router
   // error=1, 2026-09-23) — kept for the TH-9 comparison, never a default.
@@ -84,6 +85,7 @@ export const RULES = {
   perCommand: (v) => (v && typeof v === 'object' && !Array.isArray(v) && Object.values(v).every((n) => Number.isInteger(n) && n >= 500)) || 'an object of command → integer cap ≥ 500',
   spill: (v) => typeof v === 'boolean' || 'true|false',
   spillTtlDays: (v) => (num(v) && v >= 0) || 'a number of days ≥ 0',
+  holdout: (v) => (num(v) && v >= 0 && v <= 0.5) || 'a number in [0, 0.5]',
   'codex.replace': (v) => typeof v === 'boolean' || 'true|false',
   'codex.mode': (v) => ['continue', 'block'].includes(v) || 'continue|block',
   'collapse.enabled': (v) => typeof v === 'boolean' || 'true|false',
@@ -107,6 +109,7 @@ export const REPO_CLASS = Object.freeze({
   cap: 'either', perCommand: 'either', minSaving: 'either', head: 'either',
   'collapse.enabled': 'narrow', 'collapse.minRun': 'narrow', tools: 'narrow',
   'collapse.strict': 'denied', mode: 'denied', spill: 'denied', spillTtlDays: 'denied', 'codex.replace': 'denied', 'codex.mode': 'denied',
+  holdout: 'denied', // TH-31: a measurement knob, the user's own
 })
 const plain = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
 // Delete a dotted key from a plain-object tree; a no-op when it is absent.

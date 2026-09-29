@@ -165,6 +165,7 @@ key is optional:
   "perCommand": { "git log": 4000, "npm test": 16000 },
   "spill": true,
   "spillTtlDays": 7,
+  "holdout": 0,
   "codex": { "replace": false, "mode": "continue" },
   "collapse": { "enabled": true, "minRun": 3, "strict": true },
   "tools": ["Bash", "Read", "WebFetch"]
@@ -176,6 +177,12 @@ report before the effect. `perCommand` keys are the command's first word or firs
 (`cd …` hops skipped), the more specific winning. Every value is validated; a bad one is
 reported by `doctor` and the default takes its place.
 
+`holdout` (0 to 0.5, default 0) is for measuring, not saving: that share of the results
+trimhook would cut is left whole and logged `kept, holdout: true`, chosen from a hash of
+the tool-use id so the same result is always in the same group. It gives the live week a
+control group — `node evals/reads.mjs --holdout 0.1` compares what the model did after
+those with what it did after the cuts (TH-31).
+
 A repository file is somebody else's checkout, so it does not get every key. It may move
 the saving knobs either way, may only narrow what you chose to see, and may not touch
 what makes a cut recoverable or what reaches the model on Codex:
@@ -185,7 +192,7 @@ what makes a cut recoverable or what reaches the model on Codex:
 | `cap`, `perCommand`, `minSaving`, `head` | either way — every cut still spills |
 | `collapse.enabled`, `collapse.minRun` | only narrower: `enabled` may turn off, never back on; `minRun` may rise, never fall |
 | `tools` | only a subset of the list above it |
-| `mode`, `spill`, `spillTtlDays`, `codex.replace`, `codex.mode`, `collapse.strict` | never — set them in `~/.trimhook.json` or the environment |
+| `mode`, `spill`, `spillTtlDays`, `holdout`, `codex.replace`, `codex.mode`, `collapse.strict` | never — set them in `~/.trimhook.json` or the environment |
 
 A key outside its class is dropped, the value from your file or the default stands, and
 `doctor` prints it as `BAD`. `~/.trimhook.json` and the environment keep every key.
