@@ -125,6 +125,14 @@ const EXACT_TERMS = [
   [/156\s+ms/, 'the measured maximum (156 ms)'],
 ]
 
+// D8: the harness's own limit is two knobs and the setting wins, so the README names
+// them together, with the clamp and the one level no hook can read.
+const HARNESS_CAP = [
+  [/BASH_MAX_OUTPUT_LENGTH(?:(?!\n\n)[\s\S])*bashOutputMaxChars|bashOutputMaxChars(?:(?!\n\n)[\s\S])*BASH_MAX_OUTPUT_LENGTH/, "the harness's own cap — BASH_MAX_OUTPUT_LENGTH and bashOutputMaxChars in one paragraph — and how trimhook relates to it"],
+  [/4,000-128,000/, 'the bashOutputMaxChars clamp (4,000-128,000)'],
+  [/--settings/, 'what doctor cannot read (--settings)'],
+]
+
 function check() {
   const errors = []
   const fail = (m) => errors.push(m)
@@ -151,7 +159,7 @@ function check() {
     const readme = read('README.md')
     if (!/nothing leaves the machine/i.test(readme)) fail('README.md must state that nothing leaves the machine')
     if (!/fail-open|fails open/i.test(readme)) fail('README.md must state the fail-open rule')
-    if (!/BASH_MAX_OUTPUT_LENGTH/.test(readme)) fail("README.md must name the harness's own cap (BASH_MAX_OUTPUT_LENGTH) and how trimhook relates to it")
+    for (const [re, what] of HARNESS_CAP) if (!re.test(readme)) fail(`README.md must state ${what}`)
     const rule = readmeSection(readme, CAP_RULE_HEADING)
     if (rule === null) fail(`README.md must state the default-cap rule under "${CAP_RULE_HEADING}" (TH-10)`)
     else for (const [re, what] of CAP_RULE) if (!re.test(rule)) fail(`README.md must state the default-cap rule's ${what} under "${CAP_RULE_HEADING}"`)

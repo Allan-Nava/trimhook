@@ -94,6 +94,13 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   `evals/results/` hold counts only (TH-15).
 
 ### Changed
+- `doctor` reads `bashOutputMaxChars` from the four Claude Code settings files — managed,
+  `.claude/settings.local.json`, `.claude/settings.json`, `~/.claude/settings.json`; the
+  highest level wins, clamped to 4,000-128,000 — and compares trimhook's cap against it,
+  falling back to `BASH_MAX_OUTPUT_LENGTH` only when none sets it, since Claude Code then
+  ignores the variable. `doctor` also says its harness verdict comes from the environment
+  only, and the README names what it cannot see: `--settings` on the command line and
+  managed policy that is not a file (TH-1, D8).
 - The README states the numbers the code runs on and where the cap bends: `stderr`'s 20%
   floor, `minSaving` as the overflow above the cap, the 200-character line snap, the
   two-marker cut and its bound (a tiny share may exceed its slice by at most 200

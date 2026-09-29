@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { readFileSync, utimesSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -210,14 +210,14 @@ test('Codex config: codex.mode defaults to continue, is validated, is denied to 
   const none = loadConfig(d, e)
   assert.deepEqual(none.cfg.codex, { replace: false, mode: 'continue' })
   assert.deepEqual(none.problems, [])
-  const quiet = doctor({ cwd: d, env: e }).lines
+  const quiet = doctor({ cwd: d, env: e, home: d, managedSettingsPath: join(d, 'managed.json') }).lines
   assert.equal(quiet.some((l) => /codex\.mode block/.test(l)), false)
 
   writeFileSync(join(d, 'user.json'), JSON.stringify({ codex: { replace: true, mode: 'block' } }))
   const block = loadConfig(d, e)
   assert.equal(block.cfg.codex.mode, 'block')
   assert.deepEqual(block.problems, [])
-  const shown = doctor({ cwd: d, env: e }).lines
+  const shown = doctor({ cwd: d, env: e, home: d, managedSettingsPath: join(d, 'managed.json') }).lines
   assert.equal(shown.filter((l) => /^  ok    mode .* · codex\.replace true · codex\.mode block$/.test(l)).length, 1)
   assert.equal(shown.filter((l) => /^  warn  codex\.mode block: Codex records the replacement as a failed tool call/.test(l)).length, 1)
 
@@ -323,22 +323,78 @@ test('report: --cap recomputes the logged sizes at another cap', () => {
 
 test('doctor: writable data dir, config problems are BAD, the harness cap is a warning', () => {
   const d = tmp()
-  let r = doctor({ cwd: d, env: env(d) })
+  let r = doctor({ cwd: d, env: env(d), home: d, managedSettingsPath: join(d, 'managed.json') })
   assert.equal(r.broken, false)
-  r = doctor({ cwd: d, env: env(d, { BASH_MAX_OUTPUT_LENGTH: '4000' }) })
+  r = doctor({ cwd: d, env: env(d, { BASH_MAX_OUTPUT_LENGTH: '4000' }), home: d, managedSettingsPath: join(d, 'managed.json') })
   assert.ok(r.lines.some((l) => /warn.*BASH_MAX_OUTPUT_LENGTH=4000 is below/.test(l)))
   writeFileSync(join(d, 'user.json'), '{nope')
-  assert.equal(doctor({ cwd: d, env: env(d) }).broken, true)
+  assert.equal(doctor({ cwd: d, env: env(d), home: d, managedSettingsPath: join(d, 'managed.json') }).broken, true)
 })
 
 test('doctor warns when the log holds a spillFailed or error record', () => {
   const d = tmp()
   writeFileSync(join(d, 'results.jsonl'), '{"outcome":"kept","spillFailed":true}\n{"outcome":"kept","error":"EACCES"}\n{"outcome":"kept","spillRead":true}\n')
-  const r = doctor({ cwd: d, env: env(d) })
+  const r = doctor({ cwd: d, env: env(d), home: d, managedSettingsPath: join(d, 'managed.json') })
   assert.ok(r.lines.some((l) => /^  warn  log: 2 results left whole after a failure \(spillFailed 1, error 1\)/.test(l)))
   assert.equal(r.broken, false)
   const clean = tmp()
-  assert.ok(!doctor({ cwd: clean, env: env(clean) }).lines.some((l) => /warn  log:/.test(l)))
+  assert.ok(!doctor({ cwd: clean, env: env(clean), home: clean, managedSettingsPath: join(clean, 'managed.json') }).lines.some((l) => /warn  log:/.test(l)))
+})
+
+// D8: the settings files are read under temporary paths, never the real ~/.claude or the
+// real managed file; the user file pins cap 8000 so the bounds hold if the default moves.
+const settingsFixture = () => {
+  const d = tmp()
+  const home = join(d, 'home')
+  const managed = join(d, 'managed.json')
+  mkdirSync(join(home, '.claude'), { recursive: true })
+  mkdirSync(join(d, '.claude'))
+  const w = (p, o) => writeFileSync(p, typeof o === 'string' ? o : JSON.stringify(o))
+  const dr = (extra = {}) => doctor({ cwd: d, env: env(d, extra), home, managedSettingsPath: managed })
+  w(join(d, 'user.json'), { cap: 8000 })
+  return { d, home, managed, w, dr }
+}
+
+test('doctor: bashOutputMaxChars from the settings files wins over BASH_MAX_OUTPUT_LENGTH, highest level first', () => {
+  const { d, home, managed, w, dr } = settingsFixture()
+  const user = join(home, '.claude', 'settings.json')
+  const project = join(d, '.claude', 'settings.json')
+  const local = join(d, '.claude', 'settings.local.json')
+
+  w(user, { bashOutputMaxChars: 100000 })
+  let r = dr({ BASH_MAX_OUTPUT_LENGTH: '4000' })
+  assert.equal(r.lines.some((l) => /^  warn/.test(l)), false)
+  assert.equal(r.lines.filter((l) => l === `  ok    BASH_MAX_OUTPUT_LENGTH=4000 ignored: bashOutputMaxChars is set in ${user}`).length, 1)
+  assert.equal(r.lines.filter((l) => l === `  ok    harness cap: bashOutputMaxChars 100,000 (${user}), above trimhook's cap 8000`).length, 1)
+  assert.equal(r.broken, false)
+
+  w(project, { bashOutputMaxChars: 6000 })
+  r = dr()
+  assert.equal(r.lines.filter((l) => l.startsWith(`  warn  bashOutputMaxChars 6,000 (${project}) is below trimhook's cap 8000: `)).length, 1)
+  assert.equal(r.lines.some((l) => l.includes('BASH_MAX_OUTPUT_LENGTH')), false)
+
+  w(local, { bashOutputMaxChars: 50000 })
+  r = dr()
+  assert.equal(r.lines.some((l) => /^  warn/.test(l)), false)
+  assert.equal(r.lines.filter((l) => l.includes(`bashOutputMaxChars 50,000 (${local})`)).length, 1)
+
+  w(managed, { bashOutputMaxChars: 1000 })
+  r = dr()
+  assert.equal(r.lines.filter((l) => l.startsWith(`  warn  bashOutputMaxChars 4,000 (${managed}, 1,000 clamped to 4,000-128,000) is below trimhook's cap 8000`)).length, 1)
+
+  w(managed, 'not json')
+  w(local, { bashOutputMaxChars: 'lots' })
+  r = dr()
+  assert.equal(r.lines.filter((l) => l.startsWith('  warn  bashOutputMaxChars 6,000 (') && l.includes(project)).length, 1)
+  assert.equal(r.broken, false)
+})
+
+test('doctor: with no bashOutputMaxChars set, BASH_MAX_OUTPUT_LENGTH decides; the harness verdict is from the environment only', () => {
+  const { dr } = settingsFixture()
+  const r = dr({ BASH_MAX_OUTPUT_LENGTH: '4000' })
+  assert.equal(r.lines.filter((l) => /^  warn  BASH_MAX_OUTPUT_LENGTH=4000 is below trimhook's cap 8000/.test(l)).length, 1)
+  assert.equal(r.lines.some((l) => l.includes('bashOutputMaxChars')), false)
+  assert.match(r.lines[0], /^  ok    harness: claude \(decided by CLAUDE_PLUGIN_ROOT\) — from the environment only; doctor sees no hook input$/)
 })
 
 // The CLI contract, end to end: stdin → process → stdout, exit code always 0.
