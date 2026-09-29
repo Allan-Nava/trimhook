@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import { capFor, loadConfig, REPO_CLASS, RULES } from '../bin/lib/config.mjs'
 import { doctor } from '../bin/lib/doctor.mjs'
 import { dataDir, detectHarnessSignal, readResponse, replacementOutput } from '../bin/lib/harness.mjs'
-import { render, summarize } from '../bin/lib/report.mjs'
+import { recompute, render, renderAt, summarize } from '../bin/lib/report.mjs'
 import { pruneSpill, spill } from '../bin/lib/store.mjs'
 import { env, input, lines, tmp } from './helpers.mjs'
 
@@ -271,6 +271,56 @@ test('report: flag counts for spillRead, spillFailed and error', () => {
   assert.doesNotMatch(render(summarize([{ outcome: 'trimmed', before: 30000, after: 8000 }])), /flags on kept results/)
 })
 
+test('report: --cap recomputes the logged sizes at another cap', () => {
+  const recs = [
+    { outcome: 'trimmed', tool: 'Bash', command: 'cat', before: 30000, after: 8000, cap: 8000, collapsed: 0 },
+    { outcome: 'kept', tool: 'Read', command: 'Read', before: 6000, after: 6000, cap: 8000 },
+    { outcome: 'kept', tool: 'Read', command: 'Read', before: 20000, after: 20000, cap: 8000, spillRead: true },
+    { outcome: 'kept', tool: 'Bash', error: 'EACCES' },
+    { outcome: 'trimmed', tool: 'Bash', command: 'seq', before: 12000, after: 8000, cap: 8000, collapsed: 3000 },
+    { outcome: 'kept', tool: 'WebFetch', command: 'WebFetch', before: 5000, after: 5000, cap: 8000 },
+  ]
+  const at4 = recompute(recs, 4000)
+  assert.equal(at4.results, 5)
+  assert.equal(at4.cut, 3)
+  assert.equal(at4.collapseOnly, 0)
+  assert.equal(at4.before, 73000)
+  assert.equal(at4.after, 37000)
+  assert.equal(at4.saved, 36000)
+  assert.equal(at4.noSize, 1)
+  assert.equal(at4.spillReads, 1)
+  assert.equal(at4.approximate, 2)
+  assert.deepEqual(at4.byTool, { Bash: { n: 2, saved: 34000 }, Read: { n: 1, saved: 2000 } })
+  assert.equal(renderAt(at4), [
+    '## at cap 4,000 — the logged sizes recomputed (TH-10)',
+    'cut 3 of 5 results · characters: 73,000 before → 37,000 after · saved 36,000 (≈ 9,000 tokens at four characters each)',
+    'by tool: Bash 34,000 (2) · Read 2,000 (1)',
+    'left out, no size (error records): 1',
+    'spill reads, never cut (D9): 1',
+    'approximate, collapse not logged: 2',
+    'method: one cap for every result (perCommand ignored), minSaving 1,500, each result a synthetic body of its logged size less its logged collapse — the sweep evals/local.mjs runs',
+  ].join('\n'))
+  const at8 = recompute(recs, 8000)
+  assert.equal(at8.cut, 1)
+  assert.equal(at8.collapseOnly, 1)
+  assert.equal(at8.after, 48000)
+  assert.equal(at8.saved, 25000)
+  assert.equal(at8.approximate, 0)
+  assert.deepEqual(at8.byTool, { Bash: { n: 2, saved: 25000 } })
+  const r8 = renderAt(at8).split('\n')
+  assert.equal(r8[1], 'cut 1 of 5 results · collapsed only 1 · characters: 73,000 before → 48,000 after · saved 25,000 (≈ 6,250 tokens at four characters each)')
+  assert.ok(!r8.some((l) => l.startsWith('approximate')))
+  const at12 = recompute(recs, 12000)
+  assert.equal(at12.cut, 1)
+  assert.equal(at12.collapseOnly, 0)
+  assert.equal(at12.after, 55000)
+  assert.equal(at12.saved, 18000)
+  const none = recompute([{ outcome: 'kept', error: 'X' }], 4000)
+  assert.equal(none.results, 0)
+  assert.equal(none.noSize, 1)
+  assert.equal(none.saved, 0)
+})
+
 test('doctor: writable data dir, config problems are BAD, the harness cap is a warning', () => {
   const d = tmp()
   let r = doctor({ cwd: d, env: env(d) })
@@ -337,6 +387,25 @@ test('e2e: a thrown error prints its stderr line, exits 0 and logs kept with the
   assert.equal(rec.tool, 'Bash')
   assert.equal(rec.harness, 'claude')
   assert.ok(!raw.includes('must be of type'))
+})
+
+test('e2e: report --cap recomputes at another cap on the CLI; a bad --cap exits 2', async () => {
+  const d = tmp()
+  writeFileSync(join(d, 'results.jsonl'), '{"outcome":"trimmed","tool":"Bash","command":"cat","before":30000,"after":8000,"cap":8000}\n{"outcome":"kept","tool":"Read","command":"Read","before":6000,"after":6000,"cap":8000}\n')
+  const plain = await run(['report'], '', { TRIMHOOK_DATA: d })
+  assert.equal(plain.code, 0)
+  assert.doesNotMatch(plain.stdout, /at cap/)
+  const at = await run(['report', '--cap', '4000'], '', { TRIMHOOK_DATA: d })
+  assert.equal(at.code, 0)
+  assert.ok(at.stdout.startsWith(plain.stdout.trimEnd() + '\n\n## at cap 4,000 — '))
+  assert.match(at.stdout, /^cut 2 of 2 results · /m)
+  assert.match(at.stdout, /^approximate, collapse not logged: 2$/m)
+  const eq = await run(['report', '--cap=4000'], '', { TRIMHOOK_DATA: d })
+  assert.equal(eq.stdout, at.stdout)
+  const bad = await run(['report', '--cap', '4,000'], '', { TRIMHOOK_DATA: d })
+  assert.equal(bad.code, 2)
+  assert.equal(bad.stdout, '')
+  assert.equal(bad.stderr, 'trimhook report: --cap must be an integer in [500, 200000], got "4,000"\n')
 })
 
 // Regression for 2026-09-24: the hook ran under Claude Code, wrote its log to the

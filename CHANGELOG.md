@@ -6,6 +6,13 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Added
+- `trimhook report --cap N` recomputes the logged results at cap N — one cap for every
+  result, `perCommand` ignored, the logged collapse replayed on a synthetic body of each
+  logged size, as `evals/local.mjs` sweeps — so a week run at 4,000 can be read at 8,000
+  and 12,000 too. Error records (no size) are left out, spill reads are never cut, and a
+  result whose collapse was never logged is counted as approximate. The README now states
+  the rule that turns the week into a default cap, and `check` guards each of its terms
+  (TH-10, D3).
 - `codex.mode`: `continue` (the default) or `block` — the shape of the Codex replacement
   once `codex.replace` is on. `continue` answers `{continue: false, stopReason}` with the
   trimmed text, `[stderr]` if any, and the note as the last line; `block` keeps 0.1.0's
@@ -41,6 +48,9 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   (TH-12, TH-20).
 
 ### Fixed
+- The README's cap table cited an earlier run (802 of 28,545 results at 4,000); it now
+  reads the committed `evals/results/2026-09-23-local.json` (807 of 28,800), the run the
+  design cites (TH-1, D8).
 - CI text named the sibling project: backlog-issues.yml spoke of HG-n ids, and the release
   notes said the hook "trims Bash output", stale since TH-12 added Read and WebFetch. Both
   fixed, and check now fails when a workflow names hookgate or an HG-n id (TH-1).
