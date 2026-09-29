@@ -96,8 +96,8 @@ trimhook print-hooks > .codex/hooks.json      # or ~/.codex/hooks.json; trust it
 
 On Codex the replacement is opt-in: `"codex": { "replace": true }` in `~/.trimhook.json`.
 Both shapes were tried live on 2026-09-29, Codex 0.155.1 (TH-9, `evals/codex-live.md`):
-`continue: false` continue 0 of 3 passed — runs 1-3: untrimmed, Codex logged "hook: PostToolUse Stopped" yet gave the model the whole 28,893-character output, no marker, and the turn went on;
-`decision: block` block 3 of 3 prefixed "Script failed", router error= in 3 of 3, head and tail quoted in 3 of 3.
+`continue: false`: 0 of 3 passed — runs 1-3: untrimmed, Codex logged "hook: PostToolUse Stopped" yet gave the model the whole 28,893-character output, no marker, and the turn went on;
+`decision: block`: 3 of 3 prefixed "Script failed", router error= in 3 of 3, head and tail quoted in 3 of 3.
 So the default stays off: on that version `continue: false` changes nothing the model
 sees, and `decision: block` replaces the text only behind an error prefix. An opt-in
 still gets `codex.mode: continue` unless it sets `block`.

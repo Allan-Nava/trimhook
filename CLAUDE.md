@@ -71,7 +71,7 @@ CONTRIBUTING.md        local loop, benchmark protocol, release runbook
 7. **Every number in the README is measured and dated**, from `evals/local.mjs` or a
    live run, with the caveat that transcripts are post-harness-cut.
 8. **Codex replacement stays opt-in** (`codex.replace`): TH-9 tried both shapes live on 2026-09-29,
-   Codex 0.155.1 (`evals/codex-live.md`) — `continue: false` continue 0 of 3 passed — runs
+   Codex 0.155.1 (`evals/codex-live.md`) — `continue: false`: 0 of 3 passed — runs
    1-3: untrimmed, Codex logged "hook: PostToolUse Stopped" yet gave the model the whole
    28,893-character output, no marker, and the turn went on; `decision: block` is
    recorded as a failed call. On a newer Codex, re-run that protocol before changing the

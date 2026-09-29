@@ -149,6 +149,15 @@ count of spill files the model actually went back to read.
   maintainer to confirm are labelled in the plan: 0.2.0 does not wait for TH-10, and the
   week's verdict is confirmed before the default cap changes.
   <!-- th: prio=high size=L labels=hook,enhancement -->
+- [ ] **TH-34 — The Codex log claims savings the model never got**: found by TH-27 S13,
+  2026-09-29. With `codex.replace: true` and the default `codex.mode: continue`, the hook
+  logs `outcome: 'trimmed'` — but TH-9 showed that on Codex 0.155.1 `continue: false` is
+  read (`hook: PostToolUse Stopped`) and the model still receives the whole output, so
+  `report` would count characters saved that never left the context. Log such a result
+  as `would-trim` (or a distinct outcome) whenever the harness is Codex and the mode is
+  `continue`, until a live run shows the shape replacing the result; and drop the stale
+  comment on `DEFAULTS.codex` in `bin/lib/config.mjs` ("opt-in until TH-9's live run" —
+  that run has happened). <!-- th: prio=med size=S labels=hook -->
 - [x] **TH-13 — Smarter cuts for known formats**: measured with `evals/middles.mjs`
   before building, and **dropped**. The premise was that the cut hides the part saying
   what went wrong. On 287 real cuts (2026-09-24) it does not: 13 carry a line that
