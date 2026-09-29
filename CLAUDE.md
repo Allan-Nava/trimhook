@@ -94,7 +94,13 @@ and `suppressOutput` are "parsed but not supported yet". Plugin-bundled hooks ar
 since 0.155 (repo or user `hooks.json`, trust required); hook processes from a repo-level
 file get none of `PLUGIN_ROOT`/`PLUGIN_DATA`/`CODEX_HOME` and inherit `CLAUDECODE`
 (measured, hookgate `01-research.md` addendum item 3). `tool_output_token_limit` is
-Codex's own output budget.
+Codex's own output budget. Measured on 0.155.1 (2026-09-23,
+`thoughts/TH-1-output-hygiene/01-research.md` Addendum item 3): `tool_response` is a bare
+string; a `decision: "block"` reply is logged as a failed call —
+`custom_tool_call_output.output` is `["Script failed …", "Script error: " + reason]`, the
+router logs `error=1`, `systemMessage` never reaches the model — so `codex.mode` defaults
+to `continue` and `block` is never a default; `max_output_tokens` truncates before the
+hook.
 
 ## Verifying a change
 

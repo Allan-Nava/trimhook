@@ -12,6 +12,7 @@ import { pruneSpill, spill } from '../bin/lib/store.mjs'
 import { env, input, lines, tmp } from './helpers.mjs'
 
 const BIN = new URL('../bin/trimhook.mjs', import.meta.url).pathname
+const FIXTURE = new URL('./fixtures/codex-post-tool-use.json', import.meta.url)
 
 test('config: defaults, user file, repository file, env, validation with defaults winning', () => {
   const d = tmp()
@@ -182,6 +183,54 @@ test('a replacement changes the field that holds the text and nothing else', () 
   const out3 = replacementOutput('claude', readResponse(bash), 'cut', '', 'note').hookSpecificOutput.updatedToolOutput
   assert.equal(out3.noOutputExpected, false)
   assert.equal(out3.stdout, 'cut')
+})
+
+test('Codex fixture: the captured PostToolUse input carries a bare-string tool_response, read as text', () => {
+  // The shape Codex 0.155.1 sent (2026-09-23), with every value neutral: no real path, id or output.
+  const fx = JSON.parse(readFileSync(FIXTURE, 'utf8'))
+  assert.deepEqual(Object.keys(fx).sort(), ['cwd', 'hook_event_name', 'model', 'permission_mode', 'session_id', 'tool_input', 'tool_name', 'tool_response', 'tool_use_id', 'transcript_path', 'turn_id'])
+  assert.deepEqual(readResponse(fx.tool_response), { stdout: '1\n2\n3\n4\n5\n', stderr: '', rest: null, shape: 'text' })
+  assert.deepEqual(detectHarnessSignal({}, fx), { harness: 'codex', signal: 'stdin' })
+  assert.equal(detectHarnessSignal({ CLAUDECODE: '1' }, fx).harness, 'codex')
+})
+
+test('Codex replacement: continue false by default, trimmed text then [stderr] then the note last; block behind codex.mode', () => {
+  const res = readResponse('x')
+  const n = 'trimhook: 9 characters elided from this result.'
+  assert.deepEqual(replacementOutput('codex', res, 'OUT', 'ERR', n), { continue: false, stopReason: 'OUT\n[stderr]\nERR\ntrimhook: 9 characters elided from this result.' })
+  // An output that already ends in a newline gets no blank line before the note.
+  assert.deepEqual(replacementOutput('codex', res, 'OUT\n', '', n, 'continue'), { continue: false, stopReason: 'OUT\ntrimhook: 9 characters elided from this result.' })
+  assert.deepEqual(replacementOutput('codex', res, 'OUT', 'ERR', n, 'block'), { decision: 'block', reason: 'OUT\n[stderr]\nERR\ntrimhook: 9 characters elided from this result.', systemMessage: n })
+  assert.equal(replacementOutput('claude', readResponse({ stdout: 'a', stderr: '' }), 'cut', '', n, 'block').hookSpecificOutput.updatedToolOutput.stdout, 'cut')
+})
+
+test('Codex config: codex.mode defaults to continue, is validated, is denied to a repository file, and doctor shows it', () => {
+  const d = tmp()
+  const e = env(d)
+  const none = loadConfig(d, e)
+  assert.deepEqual(none.cfg.codex, { replace: false, mode: 'continue' })
+  assert.deepEqual(none.problems, [])
+  const quiet = doctor({ cwd: d, env: e }).lines
+  assert.equal(quiet.some((l) => /codex\.mode block/.test(l)), false)
+
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ codex: { replace: true, mode: 'block' } }))
+  const block = loadConfig(d, e)
+  assert.equal(block.cfg.codex.mode, 'block')
+  assert.deepEqual(block.problems, [])
+  const shown = doctor({ cwd: d, env: e }).lines
+  assert.equal(shown.filter((l) => /^  ok    mode .* · codex\.replace true · codex\.mode block$/.test(l)).length, 1)
+  assert.equal(shown.filter((l) => /^  warn  codex\.mode block: Codex records the replacement as a failed tool call/.test(l)).length, 1)
+
+  writeFileSync(join(d, '.trimhook.json'), JSON.stringify({ codex: { mode: 'continue' } }))
+  const repo = loadConfig(d, e)
+  assert.equal(repo.cfg.codex.mode, 'block')
+  assert.deepEqual(repo.problems, [`${join(d, '.trimhook.json')}: codex.mode may only be set in ~/.trimhook.json or the environment`])
+
+  const d2 = tmp()
+  writeFileSync(join(d2, 'user.json'), JSON.stringify({ codex: { mode: 'stop' } }))
+  const bad = loadConfig(d2, env(d2))
+  assert.equal(bad.cfg.codex.mode, 'continue')
+  assert.deepEqual(bad.problems, ['codex.mode must be continue|block, got "stop" — using "continue"'])
 })
 
 test('spill files are pruned after the TTL', () => {

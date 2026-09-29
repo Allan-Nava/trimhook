@@ -53,7 +53,7 @@ export async function postToolUse(input, deps = {}) {
   if (!replaced) return null
   const removed = [elided && `${elided.toLocaleString('en-US')} characters elided`, collapsed && `${collapsed.toLocaleString('en-US')} in repeated lines`].filter(Boolean).join(', ')
   const note = `trimhook: ${removed} from this result${path ? `; the whole output is at ${path}` : ''}.`
-  return replacementOutput(harness, res, t ? t.stdout : body.stdout, t ? t.stderr : body.stderr, note)
+  return replacementOutput(harness, res, t ? t.stdout : body.stdout, t ? t.stderr : body.stderr, note, cfg.codex.mode)
 }
 
 // For the log: the command's first word, or first two when the first takes a
