@@ -49,6 +49,15 @@ test('readResponse understands both harnesses and refuses images', () => {
   assert.equal(readResponse(null), null)
 })
 
+test('readResponse: an interrupted Bash result falls through', () => {
+  assert.equal(readResponse({ stdout: lines(5000), stderr: '', interrupted: true, isImage: false }), null)
+  const done = readResponse({ stdout: 'a', stderr: '', interrupted: false, isImage: false })
+  assert.equal(done.stdout, 'a')
+  assert.equal(done.shape, 'bash')
+  assert.equal(readResponse({ stdout: 'a' }).stdout, 'a')
+  assert.notEqual(readResponse({ stdout: 'a', interrupted: 'yes' }), null, 'only the boolean true counts')
+})
+
 // The shapes are the ones the transcripts actually carry (2026-09-23), not invented ones.
 test('readResponse finds the text in a Read and a WebFetch, and refuses an image Read', () => {
   const read = { type: 'text', file: { filePath: '/a/b.ts', content: 'const x = 1\n', numLines: 1, startLine: 1, totalLines: 400 } }

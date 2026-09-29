@@ -51,7 +51,12 @@ export function readResponse(r) {
   if (typeof r === 'string') return { stdout: r, stderr: '', rest: null, shape: 'text' }
   if (!r || typeof r !== 'object') return null
   if (r.isImage) return null
-  if (typeof r.stdout === 'string' || typeof r.stderr === 'string') return { stdout: r.stdout ?? '', stderr: r.stderr ?? '', rest: r, shape: 'bash' }
+  if (typeof r.stdout === 'string' || typeof r.stderr === 'string') {
+    // D2: an interrupted command's output is partial and documented as such
+    // (`interrupted`, code.claude.com hooks, read 2026-09-23) — leave it as the harness gave it.
+    if (r.interrupted === true) return null
+    return { stdout: r.stdout ?? '', stderr: r.stderr ?? '', rest: r, shape: 'bash' }
+  }
   // Read: the file's own content. An image Read has no text and a base64 body that must
   // never be cut — numLines and totalLines still describe the file, not the excerpt, so
   // they are left alone and the marker says what is missing.

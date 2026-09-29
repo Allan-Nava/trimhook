@@ -80,6 +80,9 @@ tool's output shape — for `Bash`: `{stdout, stderr, interrupted, isImage}`; a 
 does not match the schema is ignored and the original is used. `updatedInput` on
 `PreToolUse` makes the harness evaluate permission rules against the rewritten input.
 `BASH_MAX_OUTPUT_LENGTH` default 30,000, max 150,000, overridden by `bashOutputMaxChars`.
+A call that fails fires `PostToolUseFailure` instead — `error` and `is_interrupt`, no
+`tool_response`, `additionalContext` its only control — so trimhook never sees a failed
+call (read 2026-09-23).
 
 **Codex CLI hooks** (learn.chatgpt.com/docs/hooks.md, read 2026-09-23): `PostToolUse` runs
 after Bash including non-zero exits; input has `turn_id`, `tool_name`, `tool_use_id`,
