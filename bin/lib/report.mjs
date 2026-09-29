@@ -2,13 +2,16 @@
 import { readRecords } from './store.mjs'
 
 export function summarize(records) {
-  const s = { results: 0, trimmed: 0, wouldTrim: 0, before: 0, after: 0, byCommand: {}, byTool: {} }
+  const s = { results: 0, trimmed: 0, wouldTrim: 0, before: 0, after: 0, byCommand: {}, byTool: {}, flags: { spillRead: 0, spillFailed: 0, error: 0 } }
   for (const r of records) {
     s.results += 1
     s.before += r.before ?? 0
     s.after += r.after ?? r.before ?? 0
     if (r.outcome === 'trimmed') s.trimmed += 1
     if (r.outcome === 'would-trim') s.wouldTrim += 1
+    if (r.spillRead === true) s.flags.spillRead += 1
+    if (r.spillFailed === true) s.flags.spillFailed += 1
+    if (typeof r.error === 'string' && r.error) s.flags.error += 1
     if (r.outcome !== 'kept') {
       const saved = (r.before ?? 0) - (r.after ?? 0)
       const c = (s.byCommand[r.command ?? '?'] ??= { n: 0, saved: 0 })
@@ -27,6 +30,8 @@ export function summarize(records) {
 }
 
 const k = (n) => n.toLocaleString('en-US')
+// D7, D9: why a result was left whole, when there is a reason worth counting.
+const flagLine = (f = {}) => { const parts = ['spillRead', 'spillFailed', 'error'].filter((n) => f[n]).map((n) => `${n} ${k(f[n])}`); return parts.length ? `flags on kept results: ${parts.join(' · ')}` : '' }
 export function render(s) {
   if (!s.results) return 'no results logged yet'
   const top = Object.entries(s.byCommand).sort((a, b) => b[1].saved - a[1].saved).slice(0, 8)
@@ -35,6 +40,7 @@ export function render(s) {
     `## trimhook — ${k(s.results)} tool results`,
     `trimmed ${k(s.trimmed)} · would trim (audit or Codex without replace) ${k(s.wouldTrim)} · kept ${k(s.results - s.trimmed - s.wouldTrim)}`,
     `characters: ${k(s.before)} before → ${k(s.after)} after · saved ${k(s.saved)} (≈ ${k(Math.round(s.saved / 4))} tokens at four characters each)`,
+    flagLine(s.flags),
     tools.length > 1 ? `by tool: ${tools.map(([t, v]) => `${t} ${k(v.saved)} (${v.n})`).join(' · ')}` : '',
     top.length ? `top commands by characters saved: ${top.map(([c, v]) => `\`${c}\` ${k(v.saved)} (${v.n})`).join(' · ')}` : '',
   ].filter(Boolean).join('\n')

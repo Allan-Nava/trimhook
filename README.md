@@ -33,7 +33,10 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
   re-running the command. Only a result that is cut is written; if the file cannot be
   written, the result is left whole.
 - **Measures.** One JSON line per result, sizes only, and `trimhook report` prints what
-  was saved, by command.
+  was saved, by command. A result left whole is logged too, as `kept`, with a flag when
+  there is a reason: `spillRead` (a read of a spill file), `spillFailed` (the spill could
+  not be written) or `error` (trimhook threw — the error's code, never its message).
+  `report` counts the flags, and `doctor` warns on the last two.
 
 ## What it does, exactly
 
@@ -65,8 +68,8 @@ tokens to save.
 
 **Nothing leaves the machine.** trimhook makes no network request. The whole output is
 written to a file with owner-only permissions under `~/.trimhook` (or `TRIMHOOK_DATA`),
-pruned after seven days; the log keeps sizes and the command's first word or two, never
-the output. One home on purpose: the harness's own plugin data directory is set for the
+pruned after seven days; the log keeps sizes, the command's first word or two and, when
+trimhook fails, the error's code — never the output, never an error message. One home on purpose: the harness's own plugin data directory is set for the
 hook process alone, and a log `trimhook report` cannot find is not a log. The spill file
 holds whatever the command printed — treat that directory as you treat your shell
 history.

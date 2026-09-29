@@ -3,6 +3,7 @@
 import { accessSync, constants, existsSync, mkdirSync } from 'node:fs'
 import { loadConfig } from './config.mjs'
 import { dataDir, detectHarnessSignal } from './harness.mjs'
+import { readRecords } from './store.mjs'
 
 export function doctor({ cwd = process.cwd(), env = process.env } = {}) {
   const lines = []
@@ -36,5 +37,9 @@ export function doctor({ cwd = process.cwd(), env = process.env } = {}) {
   if (harnessCap && harnessCap < cfg.cap) warn(`BASH_MAX_OUTPUT_LENGTH=${harnessCap} is below trimhook's cap ${cfg.cap}: Claude Code cuts first, flat, and trimhook never sees the rest`)
   if (harness === 'codex' && !cfg.codex.replace) warn('codex.replace is off: on Codex trimhook measures (outcome would-trim) and does not replace the result — see README')
   if (cfg.mode === 'audit') warn('mode audit: results are measured, none is replaced')
+  // D7: an install that fails saves nothing and says so only here and in `report`.
+  const recs = readRecords(dir)
+  const failed = { spillFailed: recs.filter((r) => r.spillFailed === true).length, error: recs.filter((r) => typeof r.error === 'string' && r.error).length }
+  if (failed.spillFailed + failed.error) warn(`log: ${failed.spillFailed + failed.error} results left whole after a failure (spillFailed ${failed.spillFailed}, error ${failed.error}) — trimhook saved nothing on those; see trimhook report and the data dir line above`)
   return { lines, broken }
 }
