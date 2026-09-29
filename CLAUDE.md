@@ -62,9 +62,10 @@ CONTRIBUTING.md        local loop, benchmark protocol, release runbook
    it — comes back whole, never cut again (TH-26).
 4. **Sizes only in the log.** The audit log never carries output text; the command is
    reduced to its first word or two. The spill files hold the output and are 0600.
-5. **Under the harness's ceiling.** Claude Code's `BASH_MAX_OUTPUT_LENGTH` (default
-   30,000) cuts first, flat; trimhook works on what survives. `doctor` warns when the
-   harness cap is below ours.
+5. **Under the harness's ceiling.** Claude Code's own limit — `bashOutputMaxChars` from
+   the settings files when set (clamped 4,000-128,000), else `BASH_MAX_OUTPUT_LENGTH`
+   (default 30,000) — acts first; trimhook works on what survives. `doctor` reads both,
+   best-effort, and warns when the one in force is below ours.
 6. **Never widen, never change a command.** No `PreToolUse`, no `updatedInput`: a
    rewritten command is what the harness evaluates permission rules against, and that
    would prompt where the user's rules did not.
@@ -86,7 +87,12 @@ tool's output with the provided value before it is sent to Claude" and must matc
 tool's output shape — for `Bash`: `{stdout, stderr, interrupted, isImage}`; a value that
 does not match the schema is ignored and the original is used. `updatedInput` on
 `PreToolUse` makes the harness evaluate permission rules against the rewritten input.
-`BASH_MAX_OUTPUT_LENGTH` default 30,000, max 150,000, overridden by `bashOutputMaxChars`.
+`BASH_MAX_OUTPUT_LENGTH` default 30,000, max 150,000; `bashOutputMaxChars` (v2.1.261+,
+top-level, any of the four settings files, highest level wins, clamped 4,000-128,000)
+makes Claude Code ignore it, and above it saves the output to a file and sends a preview
+plus the path (settings reference, read 2026-09-23). Managed file paths (re-read
+2026-09-29): `/Library/Application Support/ClaudeCode/`, `/etc/claude-code/`,
+`C:\Program Files\ClaudeCode\`.
 A call that fails fires `PostToolUseFailure` instead — `error` and `is_interrupt`, no
 `tool_response`, `additionalContext` its only control — so trimhook never sees a failed
 call (read 2026-09-23).
@@ -123,7 +129,9 @@ npm run backlog && npm run build:site
 `check` also holds the README to what the code does: under "What it does, exactly" the
 `stderr` floor, what `minSaving` counts, the snap and two-stream slack, the 5 s timeout
 and its measured cost; under "How the week decides the default cap" each term of the D3
-rule. One regex per statement, on its number, inside its own section — a rewording that
+rule. It also wants `BASH_MAX_OUTPUT_LENGTH` and `bashOutputMaxChars` in one README
+paragraph, the 4,000-128,000 clamp, and the `--settings` gap `doctor` cannot read. One
+regex per statement, on its number, inside its own section — a rewording that
 keeps the number passes, a lost number fails.
 
 End to end in Claude Code: install the checkout (`/plugin marketplace add .`,

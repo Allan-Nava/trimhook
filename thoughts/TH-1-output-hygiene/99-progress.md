@@ -21,11 +21,11 @@
 | S7 | ✅ done | S7 | `5bc7bb9` (#39) | `REPO_CLASS`: either / narrow / denied per key; breaking for repository files (0.2.0); CHANGELOG conflict with S2 resolved by keeping both, breaking entry first |
 | S8 | ✅ done | S8 | `49b1eaa` (#40) | Codex replies `{continue: false, stopReason}` by default, `block` behind `codex.mode`; anonymised fixture; see Discoveries |
 | S9 | ✅ done | S9 | `2a27bcb` (#47) | `report --cap N`; README "How the week decides the default cap" guarded by `check`; sweep table from the committed JSON; TH-10 no longer gates 0.2.0 (A1); no deviation |
-| S10 | ✅ done | S10 | this PR | README bounds (stderr floor 20%, overflow, 200-character floor, 5 s timeout, 75-83 ms p50, 156 ms worst) guarded by `check`; no deviation |
-| S11 | ⬜ todo | — | — | unblocked: S6, S8, S10 merged |
+| S10 | ✅ done | S10 | `35da829` (#48) | README bounds (stderr floor 20%, overflow, 200-character floor, 5 s timeout, 75-83 ms p50, 156 ms worst) guarded by `check`; no deviation |
+| S11 | ✅ done | S11 | this PR | `doctor` reads `bashOutputMaxChars` (four files, highest first, clamp 4,000-128,000); verdict says environment only; no deviation |
 | S12 | ✅ done | orchestrator | `0975840` (#42) | TH-9 fail — `evals/codex-live.md` |
 | S13 | ✅ done | S13 | `1b9d8ec` (#44) | fail branch: default stays off; README/CLAUDE.md/CHANGELOG say what 0.155.1 did; TH-9 ticked; see Deviations |
-| S14 | ⏸️ blocked | — | — | TH-10 live week; waits on S1, S4, S6, S7, S9 |
+| S14 | ⬜ todo | — | — | unblocked; needs the maintainer: one live week at cap 4,000 (protocol in 04-plan.md S14) |
 | S15 | ⏸️ blocked | — | — | waits on S14 |
 
 Legend: ⬜ todo · 🔄 in progress · ✅ done · ⏸️ blocked · ❌ failed
@@ -37,9 +37,9 @@ parallel, then S8, then S12 and S13 — and the rest after.
 
 ## Where I left off
 
-**Current step:** S11
+**Current step:** S14 — the maintainer's
 
-**Next concrete action:** run S11 (doctor reads bashOutputMaxChars) in a fresh session — the last agent step before S14
+**Next concrete action:** every agent step is merged; S14 is one live week at cap 4,000 by the maintainer, then S15 applies the D3 verdict in a later minor (A1)
 
 ---
 

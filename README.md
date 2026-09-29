@@ -19,10 +19,14 @@ wrong the model sees exactly what it would have seen without the plugin.
 
 ## Why a hook and not a setting
 
-Claude Code already cuts Bash output flat at `BASH_MAX_OUTPUT_LENGTH` (default 30,000
-characters; the `bashOutputMaxChars` setting overrides it), and Codex budgets tool
-output by tokens (`tool_output_token_limit`). Those are ceilings, and they cut from the
-end: a test run's summary line, the part that says how it ended, is the first thing to go.
+Claude Code already limits Bash output. `BASH_MAX_OUTPUT_LENGTH` (default 30,000
+characters) cuts it flat — unless `bashOutputMaxChars` is set in a settings file (managed,
+`.claude/settings.local.json`, `.claude/settings.json` or `~/.claude/settings.json`, the
+highest level winning, clamped to 4,000-128,000), and then the variable is ignored. Above
+that limit the harness already writes the output to a file and sends the model a preview
+and the path (Claude Code 2.1.261 or later): trimhook is the same idea at a lower cap,
+keeping the tail too. Codex budgets tool output by tokens (`tool_output_token_limit`).
+Those are ceilings, and they cut from the end: a test run's summary line, the part that says how it ended, is the first thing to go.
 trimhook sits under the harness's ceiling and does three things a flat cut does not:
 
 - **Keeps the tail.** The last lines of a build, a test run or a log are usually the ones
@@ -128,7 +132,11 @@ live run handed the hook 504 of 28,893 characters).
 
 Then `trimhook doctor` says which harness it sees, where it writes, and whether the
 harness's own cap sits below trimhook's — in which case the harness cuts first and
-trimhook never sees the rest.
+trimhook never sees the rest. It reads `bashOutputMaxChars` from those four files,
+best-effort, and `BASH_MAX_OUTPUT_LENGTH` only when none sets it. It cannot see a
+`--settings` file passed on the command line, which no hook or terminal command can read,
+nor managed policy delivered by MDM, the registry, `managed-settings.d/` or the claude.ai
+console; and it has no hook input, so its harness verdict comes from the environment only.
 
 ## Configure
 
