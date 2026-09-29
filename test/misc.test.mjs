@@ -4,7 +4,7 @@ import { readFileSync, utimesSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { capFor, loadConfig } from '../bin/lib/config.mjs'
+import { capFor, loadConfig, REPO_CLASS, RULES } from '../bin/lib/config.mjs'
 import { doctor } from '../bin/lib/doctor.mjs'
 import { dataDir, detectHarnessSignal, readResponse, replacementOutput } from '../bin/lib/harness.mjs'
 import { render, summarize } from '../bin/lib/report.mjs'
@@ -30,6 +30,103 @@ test('config: defaults, user file, repository file, env, validation with default
   assert.equal(bad.cfg.cap, 8000)
   assert.equal(bad.cfg.head, 0.6)
   assert.equal(bad.cfg.mode, 'trim')
+})
+
+test('config, repository layer: cap, perCommand, minSaving and head move either way', () => {
+  const d = tmp()
+  const e = env(d)
+  const repo = join(d, '.trimhook.json')
+  writeFileSync(e.TRIMHOOK_USER_CONFIG, JSON.stringify({ cap: 8000, perCommand: { 'npm test': 16000 } }))
+  writeFileSync(repo, JSON.stringify({ cap: 12000, minSaving: 500, head: 0.7, perCommand: { 'npm test': 30000 } }))
+  const up = loadConfig(d, e)
+  assert.equal(up.cfg.cap, 12000)
+  assert.equal(up.cfg.minSaving, 500)
+  assert.equal(up.cfg.head, 0.7)
+  assert.deepEqual(up.cfg.perCommand, { 'npm test': 30000 })
+  assert.deepEqual(up.problems, [])
+  writeFileSync(repo, JSON.stringify({ cap: 2000 }))
+  const down = loadConfig(d, e)
+  assert.equal(down.cfg.cap, 2000)
+  assert.deepEqual(down.problems, [])
+})
+
+test('config, repository layer: collapse and tools may only narrow', () => {
+  const d = tmp()
+  const e = env(d)
+  writeFileSync(e.TRIMHOOK_USER_CONFIG, JSON.stringify({ collapse: { enabled: false }, tools: ['Bash', 'Read'] }))
+  writeFileSync(join(d, '.trimhook.json'), JSON.stringify({ collapse: { enabled: true, minRun: 2 }, tools: ['Bash', 'WebFetch'] }))
+  const { cfg, problems } = loadConfig(d, e)
+  assert.equal(cfg.collapse.enabled, false)
+  assert.equal(cfg.collapse.minRun, 3)
+  assert.deepEqual(cfg.tools, ['Bash', 'Read'])
+  assert.equal(problems.length, 3)
+  for (const p of problems) {
+    assert.ok(p.startsWith(`${join(d, '.trimhook.json')}: `), p)
+    assert.match(p, /: (collapse\.enabled|collapse\.minRun|tools) may only narrow /)
+  }
+  const d2 = tmp()
+  const e2 = env(d2)
+  writeFileSync(e2.TRIMHOOK_USER_CONFIG, '{}')
+  writeFileSync(join(d2, '.trimhook.json'), JSON.stringify({ collapse: { enabled: false, minRun: 5 }, tools: ['Bash'] }))
+  const narrow = loadConfig(d2, e2)
+  assert.equal(narrow.cfg.collapse.enabled, false)
+  assert.equal(narrow.cfg.collapse.minRun, 5)
+  assert.deepEqual(narrow.cfg.tools, ['Bash'])
+  assert.deepEqual(narrow.problems, [])
+})
+
+test('config, repository layer: mode, spill, spillTtlDays, codex.replace and collapse.strict are denied', () => {
+  const d = tmp()
+  const e = env(d)
+  const repo = join(d, '.trimhook.json')
+  writeFileSync(e.TRIMHOOK_USER_CONFIG, JSON.stringify({ codex: { replace: true } }))
+  writeFileSync(repo, JSON.stringify({ mode: 'audit', spill: false, spillTtlDays: 0, codex: { replace: false }, collapse: { strict: false } }))
+  const { cfg, problems } = loadConfig(d, e)
+  assert.equal(cfg.mode, 'trim')
+  assert.equal(cfg.spill, true)
+  assert.equal(cfg.spillTtlDays, 7)
+  assert.equal(cfg.codex.replace, true)
+  assert.equal(cfg.collapse.strict, true)
+  assert.deepEqual(
+    problems,
+    ['mode', 'spill', 'spillTtlDays', 'codex.replace', 'collapse.strict'].map((k) => `${repo}: ${k} may only be set in ~/.trimhook.json or the environment`),
+  )
+  const d2 = tmp()
+  const e2 = env(d2)
+  writeFileSync(e2.TRIMHOOK_USER_CONFIG, JSON.stringify({ spill: false, mode: 'audit' }))
+  const user = loadConfig(d2, e2)
+  assert.equal(user.cfg.spill, false)
+  assert.equal(user.cfg.mode, 'audit')
+  writeFileSync(join(d2, '.trimhook.json'), JSON.stringify({ mode: 'trim' }))
+  writeFileSync(e2.TRIMHOOK_USER_CONFIG, '{}')
+  assert.equal(loadConfig(d2, { ...e2, TRIMHOOK_MODE: 'audit' }).cfg.mode, 'audit', 'the environment keeps every key')
+})
+
+test('config, repository layer: TRIMHOOK_CONFIG is classed the same way', () => {
+  const d = tmp()
+  const e = env(d)
+  const explicit = join(d, 'explicit.json')
+  writeFileSync(explicit, JSON.stringify({ spill: false, cap: 4000 }))
+  writeFileSync(join(d, '.trimhook.json'), JSON.stringify({ cap: 9999 }))
+  const { cfg, path, problems } = loadConfig(d, { ...e, TRIMHOOK_CONFIG: explicit })
+  assert.equal(cfg.spill, true)
+  assert.equal(cfg.cap, 4000)
+  assert.equal(path, explicit)
+  assert.deepEqual(problems, [`${explicit}: spill may only be set in ~/.trimhook.json or the environment`])
+})
+
+test('config, repository layer: every key has a class; bad values keep the upper one', () => {
+  assert.deepEqual(Object.keys(RULES).filter((k) => !(k in REPO_CLASS)), [])
+  const d = tmp()
+  const e = env(d)
+  writeFileSync(e.TRIMHOOK_USER_CONFIG, JSON.stringify({ codex: { replace: true }, collapse: { minRun: 10 } }))
+  writeFileSync(join(d, '.trimhook.json'), JSON.stringify({ codex: 5, collapse: { minRun: 'x' } }))
+  const { cfg, problems } = loadConfig(d, e)
+  assert.equal(cfg.codex.replace, true)
+  assert.equal(cfg.collapse.minRun, 10)
+  assert.equal(problems.length, 2)
+  assert.ok(problems.some((p) => p.endsWith(': codex must be an object, got 5')), problems.join('\n'))
+  assert.ok(problems.some((p) => /: collapse\.minRun must be an integer ≥ 2, got "x" — using 10$/.test(p)), problems.join('\n'))
 })
 
 test('harness detection: own signals before ambient ones', () => {

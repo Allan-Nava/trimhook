@@ -98,9 +98,10 @@ trimhook never sees the rest.
 
 ## Configure
 
-`~/.trimhook.json` (yours), then `TRIMHOOK_CONFIG` if set, then the repository's
-`.trimhook.json` (or `.claude/trimhook.json`, `.codex/trimhook.json`), then
-`TRIMHOOK_MODE` and `TRIMHOOK_CAP`. Every key is optional:
+`~/.trimhook.json` (yours), then the repository's `.trimhook.json` (or
+`.claude/trimhook.json`, `.codex/trimhook.json`) — or the file `TRIMHOOK_CONFIG` names,
+which takes the repository file's place — then `TRIMHOOK_MODE` and `TRIMHOOK_CAP`. Every
+key is optional:
 
 ```json
 {
@@ -121,6 +122,20 @@ trimhook never sees the rest.
 report before the effect. `perCommand` keys are the command's first word or first two
 (`cd …` hops skipped), the more specific winning. Every value is validated; a bad one is
 reported by `doctor` and the default takes its place.
+
+A repository file is somebody else's checkout, so it does not get every key. It may move
+the saving knobs either way, may only narrow what you chose to see, and may not touch
+what makes a cut recoverable or what reaches the model on Codex:
+
+| Key | From a repository file |
+|---|---|
+| `cap`, `perCommand`, `minSaving`, `head` | either way — every cut still spills |
+| `collapse.enabled`, `collapse.minRun` | only narrower: `enabled` may turn off, never back on; `minRun` may rise, never fall |
+| `tools` | only a subset of the list above it |
+| `mode`, `spill`, `spillTtlDays`, `codex.replace`, `collapse.strict` | never — set them in `~/.trimhook.json` or the environment |
+
+A key outside its class is dropped, the value from your file or the default stands, and
+`doctor` prints it as `BAD`. `~/.trimhook.json` and the environment keep every key.
 
 `tools` is the list trimhook will cut. A tool is on it only when its output shape has
 been read off real transcripts — the harness ignores a replacement that does not match

@@ -1,8 +1,10 @@
 // Configuration, in trust order: defaults, the user's file (~/.trimhook.json or
-// TRIMHOOK_USER_CONFIG), an explicit TRIMHOOK_CONFIG, the repository's file
-// (.trimhook.json, .claude/trimhook.json or .codex/trimhook.json in the working
-// directory), then the environment. A malformed file is a diagnostic for `doctor`,
-// never a reason to change what the model sees — the layer below applies.
+// TRIMHOOK_USER_CONFIG), the repository layer — the repository's file (.trimhook.json,
+// .claude/trimhook.json or .codex/trimhook.json in the working directory), or the file
+// TRIMHOOK_CONFIG names, which takes its place — then the environment. The repository
+// layer is somebody's checkout, so each key has a class (REPO_CLASS, D4): the user file
+// and the environment keep every key. A malformed file or a refused key is a diagnostic
+// for `doctor`, never a reason to change what the model sees — the layer below applies.
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -71,7 +73,7 @@ function readJson(path, problems) {
 export const userConfigPath = (env = process.env) => env.TRIMHOOK_USER_CONFIG ?? join(homedir(), '.trimhook.json')
 
 const num = (x) => typeof x === 'number' && Number.isFinite(x)
-const RULES = {
+export const RULES = {
   mode: (v) => ['trim', 'audit'].includes(v) || 'trim|audit',
   cap: (v) => (Number.isInteger(v) && v >= 500 && v <= 200000) || 'an integer in [500, 200000]',
   head: (v) => (num(v) && v >= 0.1 && v <= 0.9) || 'a number in [0.1, 0.9]',
@@ -93,19 +95,74 @@ const set = (o, path, v) => {
   cur[ks.at(-1)] = v
 }
 
+// D4: what the repository layer may do to each key. `either` moves it both ways (how
+// much of a cut result shows; every cut still spills); `narrow` only towards less
+// (collapse off, a longer minRun, a subset of tools — a user who chose to see more keeps
+// it); `denied` is for recoverability and for what reaches the model on Codex.
+export const REPO_CLASS = Object.freeze({
+  cap: 'either', perCommand: 'either', minSaving: 'either', head: 'either',
+  'collapse.enabled': 'narrow', 'collapse.minRun': 'narrow', tools: 'narrow',
+  'collapse.strict': 'denied', mode: 'denied', spill: 'denied', spillTtlDays: 'denied', 'codex.replace': 'denied',
+})
+const plain = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
+// Delete a dotted key from a plain-object tree; a no-op when it is absent.
+const unset = (o, path) => {
+  const ks = path.split('.')
+  const parent = ks.length > 1 ? get(o, ks.slice(0, -1).join('.')) : o
+  if (plain(parent)) delete parent[ks.at(-1)]
+}
+const NARROWER = {
+  'collapse.enabled': (v, u) => v === false || v === u,
+  'collapse.minRun': (v, u) => v >= u,
+  tools: (v, u) => v.every((t) => Array.isArray(u) && u.includes(t)),
+}
+// The repository object with every refused key removed, each refusal a problem. A value
+// that fails its rule is dropped too, so the upper value stands rather than the default.
+function repoLayer(repo, upper, path, problems) {
+  const out = structuredClone(repo)
+  for (const top of ['codex', 'collapse']) {
+    if (Object.hasOwn(out, top) && !plain(out[top])) {
+      problems.push(`${path}: ${top} must be an object, got ${JSON.stringify(out[top])}`)
+      delete out[top]
+    }
+  }
+  for (const key of Object.keys(RULES)) {
+    const v = get(out, key)
+    if (v === undefined) continue
+    const cls = REPO_CLASS[key] ?? 'denied'
+    const u = get(upper, key)
+    if (cls === 'denied') {
+      problems.push(`${path}: ${key} may only be set in ~/.trimhook.json or the environment`)
+      unset(out, key)
+      continue
+    }
+    const r = RULES[key](v)
+    if (r !== true) {
+      problems.push(`${path}: ${key} must be ${r}, got ${JSON.stringify(v)} — using ${JSON.stringify(u)}`)
+      unset(out, key)
+      continue
+    }
+    if (cls === 'narrow' && !NARROWER[key](v, u)) {
+      problems.push(`${path}: ${key} may only narrow ${JSON.stringify(u)}, got ${JSON.stringify(v)}`)
+      unset(out, key)
+    }
+  }
+  return out
+}
+
 export function loadConfig(cwd = process.cwd(), env = process.env) {
   const problems = []
   const userPath = userConfigPath(env)
-  let cfg = merge(DEFAULTS, readJson(userPath, problems) ?? {})
+  const upper = merge(DEFAULTS, readJson(userPath, problems) ?? {})
   let path
   if (env.TRIMHOOK_CONFIG) {
     path = env.TRIMHOOK_CONFIG
-    cfg = merge(cfg, readJson(path, problems) ?? {})
   } else {
     const candidates = [join(cwd, '.trimhook.json'), join(cwd, '.claude', 'trimhook.json'), join(cwd, '.codex', 'trimhook.json')]
     path = candidates.find(existsSync) ?? candidates[0]
-    cfg = merge(cfg, readJson(path, problems) ?? {})
   }
+  const repo = readJson(path, problems)
+  const cfg = merge(upper, repo ? repoLayer(repo, upper, path, problems) : {})
   if (env.TRIMHOOK_MODE) cfg.mode = env.TRIMHOOK_MODE
   if (env.TRIMHOOK_CAP) cfg.cap = Number(env.TRIMHOOK_CAP)
   for (const [key, rule] of Object.entries(RULES)) {

@@ -55,8 +55,9 @@ count of spill files the model actually went back to read.
   0600, named in the marker, pruned after `spillTtlDays`; no cut without a spill.
   <!-- th: prio=high size=S labels=hook ver=main -->
 - [x] **TH-4 — Config with a trust order**: defaults → `~/.trimhook.json` →
-  `TRIMHOOK_CONFIG` → repository file → env; every value validated with the default
-  winning; `perCommand` caps by first word or two; `audit` mode.
+  repository file, or `TRIMHOOK_CONFIG` in its place → env; every value validated with
+  the default winning; the repository layer classed per key since TH-1 (either way,
+  narrow only, denied); `perCommand` caps by first word or two; `audit` mode.
   <!-- th: prio=med size=S labels=hook ver=main -->
 - [x] **TH-5 — doctor and report**: harness by the signal that decided it, data dir
   writability, config problems, the harness's own `BASH_MAX_OUTPUT_LENGTH` below ours;
