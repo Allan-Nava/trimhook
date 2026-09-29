@@ -259,3 +259,68 @@ four items this milestone opened with, one shipped and three are closed by measu
   78.5%, because it drops words inside lines. Its cross-turn dedup is TH-17 again, and
   its error protection is TH-13 again — both already closed by measurement here.
   <!-- th: prio=low size=M labels=benchmark ver=dropped -->
+
+## v0.4.0 — What headroom measured <!-- ms: phase=later -->
+
+[headroom](https://github.com/headroomlabs-ai/headroom) (0.39.1, Apache-2.0) is a proxy
+that compresses tool output semantically, and its source carries measurements and
+invariants that apply to a cut as much as to a compressor. TH-25 compared the two tools
+whole on 2026-09-28 and dropped the one part that would transplant, its lossless folds.
+This milestone takes the rest — not its code, its reasons — and holds each to the same
+gate as v0.3.0: **measured first; an idea that saves under a couple of per cent is
+dropped**, unless it is a correctness fix, which is judged by what it breaks. headroom's
+error protection and cross-turn dedup are not here: they are TH-13 and TH-17, both closed
+by measurement.
+
+Sized on 2026-09-28 against local transcripts, at the default cap of 8,000, where a cut
+takes place from 9,500 characters (cap plus `minSaving`): 281 results would be cut, and
+the cut would take 2.42 M characters.
+
+- [ ] **TH-28 — What a cut Read costs an Edit**: headroom keeps `Read` out of compression
+  because the `Edit` that follows needs the file's exact bytes (`DEFAULT_EXCLUDE_TOOLS` in
+  its `config.py`); trimhook cuts `Read` since TH-12. A cut is verbatim, so an `old_string`
+  copied from the visible part is exact — the cost is the part not visible. Estimated on
+  the transcripts: 38 Reads long enough to be cut, 155 Edits on the same files after them,
+  and at least 15 of those (10%) with the `old_string` inside the part the cut would hide;
+  a lower bound, since the match only finds strings within one line. Those Reads were not
+  cut at the time, so what the model does instead is unknown. Measure it live in the TH-10
+  week: after a cut `Read`, count the pages read with `offset`/`limit` and the Edits that
+  fail on the same path (extend `evals/reads.mjs`). Then decide, with the number: keep
+  `Read` in `tools`, give it its own higher cap (`perCommand: { "Read": … }` already
+  exists), or take it out. <!-- th: prio=high size=M labels=benchmark,hook -->
+- [ ] **TH-29 — Instruction files are never cut**: headroom excludes Claude Code's `Skill`
+  tool because a lossy pass inverts instructions — on 40 real `SKILL.md` bodies only 73.5%
+  of negations and 65.5% of modals survived (its `config.py`). trimhook's cut does not drop
+  words, it drops the whole middle, which is worse for a file of rules: the rules in the
+  middle are simply gone. Exempt a `Read` of `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`,
+  `GEMINI.md`, `SKILL.md` and anything under `.claude/commands/`, `.claude/agents/` or
+  `.claude/skills/`, the same way D9 exempts a spill read. A correctness fix, not a saving:
+  22 such Reads in the transcripts, one over the cut, 0.12% of what the cut takes — so the
+  exemption costs nothing. <!-- th: prio=med size=S labels=hook -->
+- [ ] **TH-30 — The cut is byte-deterministic, and a test says so**: the README's
+  cache-safety claim (TH-25) rests on the cut being a pure function of its input — the
+  same result gives the same bytes, marker and spill path included — so a prompt-cache
+  prefix never changes. headroom documents the failure this rules out: a compressor that
+  is not byte-deterministic loses the whole prefix discount on the next turn
+  (`compress_assistant_text_blocks`, its `content_router.py`). Add the test: the same
+  input through `postToolUse` twice, and through the CLI in two processes, gives
+  identical stdout. <!-- th: prio=med size=S labels=tests -->
+- [ ] **TH-31 — A holdout, so the cost is measured rather than estimated**: headroom
+  reports its output savings as an estimate with a confidence range, and offers holding
+  out 10% of conversations for a measured number. trimhook's week (TH-10) has the same
+  gap: a re-read rate says what happened after a cut, not what would have happened
+  without one. Add `holdout` (default 0): that share of cuttable results is left whole
+  and logged `kept, holdout: true`, chosen from a hash of the tool-use id so a run is
+  reproducible; `evals/reads.mjs` then compares re-reads, re-runs and the tokens of the
+  following turn between the two groups. Denied to the repository layer (D4): it is a
+  measurement knob. <!-- th: prio=med size=M labels=benchmark,hook -->
+- [x] **TH-32 — JSON-aware cuts, from headroom's SmartCrusher**: headroom's JSON crusher
+  reaches 90% on repeated arrays, and a head-and-tail cut of a JSON document leaves it
+  unbalanced. **Dropped on the measurement:** 2 Bash results that are whole JSON
+  documents would be cut, 0.18% of what the cut takes (2026-09-28). trimhook cuts only
+  `Bash`, `Read` and `WebFetch`; re-open if `tools` grows to include a tool that returns
+  JSON. <!-- th: prio=low size=M labels=benchmark ver=dropped -->
+- [x] **TH-33 — Cite headroom as prior art for D9**: headroom excludes its own
+  `headroom_retrieve` tool from recompression, because a recompressed original writes a
+  marker nobody can redeem — the same reason D9 exempts a read of a spill file. One line
+  in the Design. <!-- th: prio=low size=S labels=docs ver=main -->
