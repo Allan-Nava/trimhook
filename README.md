@@ -39,7 +39,7 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
 
 | Event | Match | Decision | Effect |
 |---|---|---|---|
-| `PostToolUse` | `Bash`, `Read`, `WebFetch` | none — the tool has already run | If `stdout + stderr` exceed the cap by at least `minSaving`, the result is replaced by head + marker + tail (`updatedToolOutput` on Claude Code; `decision: block` with the trimmed text as the feedback on Codex, opt-in until verified live). Below the cap, or on an image result, or on any error: no output, the harness proceeds unchanged. |
+| `PostToolUse` | `Bash`, `Read`, `WebFetch` | none — the tool has already run | If `stdout + stderr` exceed the cap by at least `minSaving`, the result is replaced by head + marker + tail (`updatedToolOutput` on Claude Code; `decision: block` with the trimmed text as the feedback on Codex, opt-in until verified live). Below the cap, on an image result, on an interrupted Bash result, or on anything trimhook cannot read: no output, the harness proceeds unchanged. A failed call never gets here — see below. |
 
 The marker reads, verbatim:
 
@@ -49,6 +49,14 @@ The marker reads, verbatim:
 
 `stdout` and `stderr` share one cap, split in proportion to their sizes with a floor for
 `stderr`, so a short error is never squeezed out by a long log.
+
+**What a failure does.** On Claude Code a tool call that fails — a Bash command that exits
+non-zero, a `Read` or `WebFetch` that errors — fires `PostToolUseFailure` instead of
+`PostToolUse`, with the error text and no `tool_response`: the model reads the harness's
+own error (for Bash, `Exit code N` and the output), and trimhook never sees it, so it
+neither cuts nor logs it. On Codex, `PostToolUse` runs after a non-zero exit too and the
+result carries no exit code, so a failing command there is trimmed by size like any other,
+with the `stderr` floor and the tail keeping its ending.
 
 **Fail-open, always.** Exit 0 with no JSON means "leave the result alone": a malformed
 event, an unwritable data directory, a bug in this file — the model reads the original.

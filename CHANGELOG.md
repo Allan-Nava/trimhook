@@ -63,6 +63,11 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   `evals/results/` hold counts only (TH-15).
 
 ### Changed
+- An interrupted Bash result (`interrupted: true`) falls through untouched, and the README
+  says what happens to a failing call: on Claude Code it fires `PostToolUseFailure`, which
+  carries no output, so trimhook never sees it; on Codex a failing command is trimmed by
+  size like any other. The README no longer says trimhook does nothing "on any error" — it
+  never saw the error (TH-1, D2).
 - README: the transcript table re-measured on 28,545 results, and a new section with the
   repetition numbers, dated. TH-16 earned its place at 3.8%; TH-17 and TH-18 are dropped
   at 0.4%, by the rule the milestone set before the measurement (TH-15, TH-17, TH-18).
