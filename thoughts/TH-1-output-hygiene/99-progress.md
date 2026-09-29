@@ -14,8 +14,8 @@
 |---|---|---|---|---|
 | S1 | ✅ done | S1 | `71059d6` (#41) | `readsSpill()` in `store.mjs`; a Read under `<data>/spill/` or a Bash command naming a spill path comes back whole, logged `spillRead`; TH-26 closed; no deviation |
 | S2 | ✅ done | S2 | `04eb280` (#36) | `interrupted: true` falls through; README "What a failure does."; no deviation |
-| S3 | ⬜ todo | — | — | |
-| S4 | ⬜ todo | — | — | |
+| S3 | ✅ done | S3 | `322e98d` (#43) | `check` greps the workflows for `hookgate` / `HG-`; strays fixed; no deviation |
+| S4 | 🔄 in progress | S4 | — |  |
 | S5 | ✅ done | S5 | `9d4f041` (#37) | `evals/codex-live.md`: protocol, pass rule, empty Runs table, pending verdict; no deviation |
 | S6 | ✅ done | S6 | `d74ad80` (#38) | thrown errors logged `kept` + `error` (code or name only); `report` and `doctor` count flags; no deviation |
 | S7 | ✅ done | S7 | `5bc7bb9` (#39) | `REPO_CLASS`: either / narrow / denied per key; breaking for repository files (0.2.0); CHANGELOG conflict with S2 resolved by keeping both, breaking entry first |
@@ -23,8 +23,8 @@
 | S9 | ⏸️ blocked | — | — | waits on S4, S6 |
 | S10 | ⏸️ blocked | — | — | waits on S3, S9 |
 | S11 | ⏸️ blocked | — | — | waits on S6, S8, S10 |
-| S12 | ✅ done | orchestrator | this PR | TH-9 fail — `evals/codex-live.md` |
-| S13 | ⬜ todo | — | — | unblocked: apply the **fail** branch |
+| S12 | ✅ done | orchestrator | `0975840` (#42) | TH-9 fail — `evals/codex-live.md` |
+| S13 | ✅ done | S13 | this PR | fail branch: default stays off; README/CLAUDE.md/CHANGELOG say what 0.155.1 did; TH-9 ticked; see Deviations |
 | S14 | ⏸️ blocked | — | — | TH-10 live week; waits on S1, S4, S6, S7, S9 |
 | S15 | ⏸️ blocked | — | — | waits on S14 |
 
@@ -37,9 +37,9 @@ parallel, then S8, then S12 and S13 — and the rest after.
 
 ## Where I left off
 
-**Current step:** S13
+**Current step:** S4 (in progress)
 
-**Next concrete action:** run S13 in a fresh session on a branch from main, taking the fail branch of its plan.
+**Next concrete action:** merge S4; then S9 (needs S4, S6), S10 (S3, S9), S11 (S6, S8, S10); S14 needs the maintainer
 
 ---
 
@@ -71,4 +71,15 @@ parallel, then S8, then S12 and S13 — and the rest after.
 ---
 
 ## Deviations
+
+- **S13, 2026-09-29 — the fail branch assumed a different failure.** Plan said: keep the
+  default off, and "`codex.mode: continue` is the shape an opt-in gets". Reality: on
+  0.155.1 `continue: false` replaces nothing, so an opt-in on the default mode gets no
+  cut at all and `block` is the only shape that replaces, behind an error prefix. The
+  README and CHANGELOG say that instead. Artifact: `04-plan.md`, S13 Branch FAIL — its
+  wording; the decision (default off) held. Also: quoting the verdict clause verbatim
+  after the shape's name doubled a word ("`continue: false` continue 0 of 3"); the
+  orchestrator rewrote it as "`continue: false`: 0 of 3", content unchanged. Filed from
+  S13's discoveries: TH-34 (the Codex log counts `trimmed` for results the model got
+  whole; a stale comment on `DEFAULTS.codex`).
 
