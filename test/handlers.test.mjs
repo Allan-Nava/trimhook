@@ -308,3 +308,40 @@ test('TH-26: the exemption holds in audit mode and on Codex', async () => {
   assert.equal(c.spillRead, true)
   assert.equal(c.harness, 'codex')
 })
+
+// TH-29: a Read of an instruction file is never cut. A cut drops the middle whole, and in
+// a file of rules the rules in the middle are simply gone; headroom excludes Claude Code's
+// Skill tool for the lossy version of the same reason.
+const readOf = (file_path, content, extra = {}) => input('', { tool_name: 'Read', tool_input: { file_path }, tool_response: { type: 'text', file: { filePath: file_path, content, numLines: 1, startLine: 1, totalLines: 1 } }, ...extra })
+
+test('TH-29: a Read of CLAUDE.md, AGENTS.md, GEMINI.md, SKILL.md or CLAUDE.local.md comes back whole', async () => {
+  const d = tmp()
+  const names = ['/repo/CLAUDE.md', '/repo/CLAUDE.local.md', '/repo/AGENTS.md', '/repo/pkg/GEMINI.md', '/home/u/.claude/skills/deploy/SKILL.md']
+  for (const p of names) assert.equal(await postToolUse(readOf(p, lines(5000)), { env: env(d) }), null, p)
+  const recs = log(d)
+  assert.equal(recs.length, names.length)
+  for (const r of recs) {
+    assert.equal(r.outcome, 'kept')
+    assert.equal(r.instructions, true)
+    assert.equal(r.after, r.before)
+  }
+})
+
+test('TH-29: anything under .claude/commands, .claude/agents or .claude/skills comes back whole, relative paths included', async () => {
+  const d = tmp()
+  assert.equal(await postToolUse(readOf('.claude/commands/release.md', lines(5000), { cwd: '/repo' }), { env: env(d) }), null)
+  assert.equal(await postToolUse(readOf('/repo/.claude/agents/reviewer.md', lines(5000)), { env: env(d) }), null)
+  assert.equal(await postToolUse(readOf('/repo/.claude/skills/x/references/long.md', lines(5000)), { env: env(d) }), null)
+  assert.deepEqual(log(d).map((r) => r.instructions), [true, true, true])
+})
+
+test('TH-29: only those names and folders — look-alikes, other tools and Bash are still cut', async () => {
+  const d = tmp()
+  for (const p of ['/repo/docs/claude.md', '/repo/CLAUDE.md.bak', '/repo/NOTCLAUDE.md', '/repo/.claude/settings-notes.md', '/repo/src/skills/SKILL.md.txt']) {
+    const out = await postToolUse(readOf(p, lines(5000)), { env: env(d) })
+    assert.ok(out, `${p} should be cut`)
+  }
+  const bash = await postToolUse(input(lines(5000), { tool_input: { command: 'cat CLAUDE.md' } }), { env: env(d) })
+  assert.ok(bash, 'TH-29 covers Read only; a Bash cat of an instruction file is cut as before')
+  assert.equal(log(d).filter((r) => r.instructions).length, 0)
+})

@@ -38,12 +38,18 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
   written, the result is left whole. A `Read` of that file, or a Bash command that names
   it (`sed -n 1400,1600p <path>`, `grep`, `cat`), comes back whole: a spill is never cut
   again.
+- **Never cuts instructions.** A `Read` of `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`,
+  `GEMINI.md` or `SKILL.md`, or of anything under `.claude/commands/`, `.claude/agents/`
+  or `.claude/skills/`, comes back whole: a cut drops the middle of a file, and in a file
+  of rules that is where rules go missing. Exact names only, and `Read` only — a Bash
+  `cat` of one is cut like any output.
 - **Measures.** One JSON line per result, sizes only, and `trimhook report` prints what
   was saved, by command. "Saved" counts only a cut the model received (`trimmed`); a cut
   measured in audit mode or on Codex without the replacement (`would-trim`), or a Codex
   reply not known to apply (`unconfirmed`, below), is shown apart as "would save", never
   as saved. A result left whole is logged too, as `kept`, with a flag when
-  there is a reason: `spillRead` (a read of a spill file), `spillFailed` (the spill could
+  there is a reason: `spillRead` (a read of a spill file), `instructions` (an instruction
+  file, above), `spillFailed` (the spill could
   not be written) or `error` (trimhook threw — the error's code, never its message).
   `report` counts the flags, and `doctor` warns on the last two.
 

@@ -4,7 +4,7 @@ import { homedir } from 'node:os'
 import { collapseRuns } from './collapse.mjs'
 import { capFor, loadConfig } from './config.mjs'
 import { dataDir, detectHarness, readResponse, replacementOutput } from './harness.mjs'
-import { appendRecord, pruneSpill, readsSpill, spillPath, writeSpill } from './store.mjs'
+import { appendRecord, pruneSpill, readsInstructions, readsSpill, spillPath, writeSpill } from './store.mjs'
 import { trimResult } from './trim.mjs'
 
 export async function postToolUse(input, deps = {}) {
@@ -25,7 +25,12 @@ export async function postToolUse(input, deps = {}) {
   if (readsSpill({ dir, home: deps.home, cwd: input.cwd, tool: input.tool_name, input: input.tool_input })) {
     appendRecord(dir, { ...record, outcome: 'kept', after: before, spillRead: true })
     return null
+  }  // TH-29: an instruction file comes back whole, the same way.
+  if (readsInstructions({ cwd: input.cwd, tool: input.tool_name, input: input.tool_input })) {
+    appendRecord(dir, { ...record, outcome: 'kept', after: before, instructions: true })
+    return null
   }
+
   // TH-24: the path is decided now and the file written only once the cut is taken, so a
   // result the model sees in full never leaves a copy on disk.
   let path = cfg.spill && cfg.mode === 'trim' ? spillPath(dir, input.session_id, input.tool_use_id) : null

@@ -48,6 +48,13 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   (TH-12, TH-20).
 
 ### Fixed
+- An instruction file is never cut. A `Read` of `CLAUDE.md`, `CLAUDE.local.md`,
+  `AGENTS.md`, `GEMINI.md`, `SKILL.md` or anything under `.claude/commands/`,
+  `.claude/agents/` or `.claude/skills/` comes back whole and is logged `kept,
+  instructions: true`; `report` counts the flag. A cut drops a file's middle, and in a
+  file of rules that is where rules go missing — the reason headroom keeps Claude Code's
+  `Skill` tool out of its compressor. It cost nothing to exempt: 22 such Reads in the
+  transcripts, one over the cut, 0.12% of what the cut takes (TH-29).
 - The README's cap table cited an earlier run (802 of 28,545 results at 4,000); it now
   reads the committed `evals/results/2026-09-23-local.json` (807 of 28,800), the run the
   design cites (TH-1, D8).

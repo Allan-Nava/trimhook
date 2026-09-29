@@ -3,7 +3,7 @@
 // files, which do hold the output the model did not see. Every write is best-effort:
 // a full disk must never change what the model reads.
 import { appendFileSync, chmodSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve, sep } from 'node:path'
+import { basename, dirname, join, resolve, sep } from 'node:path'
 
 const safe = (fn) => {
   try {
@@ -63,6 +63,21 @@ export function readsSpill({ dir, home, cwd, tool, input }) {
     return false
   }
   return false
+}
+
+// TH-29: the files an agent reads as instructions. A cut drops the middle whole, and in
+// a file of rules the rules in the middle are gone; headroom (0.39.1) excludes Claude
+// Code's Skill tool for the lossy version of the same reason, having measured only 73.5%
+// of negations surviving its compressor on 40 SKILL.md bodies. Read only, and exact names
+// only: a look-alike is cut like any file, and so is a Bash `cat` of one.
+const INSTRUCTION_NAMES = new Set(['CLAUDE.md', 'CLAUDE.local.md', 'AGENTS.md', 'GEMINI.md', 'SKILL.md'])
+const INSTRUCTION_DIRS = ['commands', 'agents', 'skills'].map((d) => `${sep}.claude${sep}${d}${sep}`)
+export function readsInstructions({ cwd, tool, input }) {
+  if (tool !== 'Read') return false
+  const p = input?.file_path
+  if (typeof p !== 'string' || !p) return false
+  const abs = resolve(typeof cwd === 'string' ? cwd : sep, p)
+  return INSTRUCTION_NAMES.has(basename(abs)) || INSTRUCTION_DIRS.some((d) => abs.includes(d))
 }
 
 // The whole output, for the model to `Read` if the head and tail were not enough.
