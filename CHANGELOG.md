@@ -68,6 +68,14 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   `evals/results/` hold counts only (TH-15).
 
 ### Changed
+- **Breaking for repository config files.** A repository's `.trimhook.json` (or
+  `.claude/` and `.codex/trimhook.json`, or the file `TRIMHOOK_CONFIG` names) may no
+  longer set `mode`, `spill`, `spillTtlDays` or `codex.replace` — all accepted in 0.1.0 —
+  nor `collapse.strict`; `collapse.enabled`, `collapse.minRun` and `tools` may only narrow
+  the user's value; `cap`, `perCommand`, `minSaving` and `head` still move either way. A
+  refused key keeps the value from `~/.trimhook.json` or the default, and `doctor` prints
+  a `BAD` line: "`<path>: <key> may only be set in ~/.trimhook.json or the environment`"
+  (TH-1, D4).
 - An interrupted Bash result (`interrupted: true`) falls through untouched, and the README
   says what happens to a failing call: on Claude Code it fires `PostToolUseFailure`, which
   carries no output, so trimhook never sees it; on Codex a failing command is trimmed by

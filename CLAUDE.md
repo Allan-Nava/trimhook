@@ -20,11 +20,12 @@ artifacts sit beside it.
 
 ```
 bin/trimhook.mjs       the CLI: check · post-tool-use · doctor · report · print-hooks
-bin/lib/               config (defaults → ~/.trimhook.json → TRIMHOOK_CONFIG → repo file → env,
-                       validated), harness (detection by the hook's own signals first, both
-                       answer shapes), trim (the pure cut: budgets, line-snapped head and tail,
-                       the marker), store (sizes-only log, spill files 0600, pruning),
-                       handlers (the orchestration), report, doctor
+bin/lib/               config (defaults → ~/.trimhook.json → repo file or TRIMHOOK_CONFIG →
+                       env, validated; the repo layer classed per key), harness (detection
+                       by the hook's own signals first, both answer shapes), trim (the pure
+                       cut: budgets, line-snapped head and tail, the marker), store
+                       (sizes-only log, spill files 0600, pruning), handlers (the
+                       orchestration), report, doctor
 test/                  node:test suites — the cut, both harness shapes, spill, config, doctor,
                        and an end-to-end spawn of the real CLI; `npm test` runs them after `check`
 evals/local.mjs        the transcript benchmark: sizes only, cap sweep, top commands;
