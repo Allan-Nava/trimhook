@@ -163,6 +163,13 @@ count of spill files the model actually went back to read.
   counted every non-kept result as saved, so audit mode's `would-trim` inflated the
   figure too. Now the outcome is `unconfirmed` for a Codex `continue` reply, and `report`
   splits "saved" (only `trimmed`) from "would save". <!-- th: prio=med size=S labels=hook ver=0.2.0 -->
+- [ ] **TH-35 — The release notes carry the CHANGELOG section**: found releasing 0.2.0.
+  `release.yml` builds the GitHub release with `--generate-notes`, which lists pull-request
+  titles, so 0.2.0's one breaking change (repository config keys, TH-27 S7) was nowhere
+  in the notes until it was added by hand. Put the tag's `## [x.y.z]` CHANGELOG section
+  at the top of the notes, above the generated list, and have `check` fail when a
+  `Breaking` entry sits anywhere but first under its heading.
+  <!-- th: prio=med size=S labels=release -->
 - [x] **TH-13 — Smarter cuts for known formats**: measured with `evals/middles.mjs`
   before building, and **dropped**. The premise was that the cut hides the part saying
   what went wrong. On 287 real cuts (2026-09-24) it does not: 13 carry a line that
