@@ -15,7 +15,7 @@
 //
 // Zero dependencies, Node 18+: a hook starts on every tool call.
 
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -125,6 +125,17 @@ function check() {
   // build:social` after touching the logo or assets/social-preview.html.
   if (existsSync(join(ROOT, 'site', 'build.mjs')) && read('site/build.mjs').includes('social-preview.png') && !existsSync(join(ROOT, 'assets', 'social-preview.png'))) {
     fail('site/build.mjs names assets/social-preview.png, which does not exist — run npm run build:social')
+  }
+  // D8: the workflows are the one place a sibling project's name is never meant to be.
+  // The docs name hookgate on purpose (it is the model this repo follows); CI text that
+  // says HG-n is a copy-paste stray. The npm tarball has no .github, hence the guard.
+  const wf = join(ROOT, '.github', 'workflows')
+  if (existsSync(wf)) {
+    for (const f of readdirSync(wf).filter((n) => n.endsWith('.yml')).sort()) {
+      read(`.github/workflows/${f}`).split('\n').forEach((l, i) => {
+        if (/hookgate|\bHG-/.test(l)) fail(`.github/workflows/${f}:${i + 1} names the sibling project (hookgate or an HG-n id) — this repository's ids are TH-n`)
+      })
+    }
   }
   if (errors.length) {
     for (const e of errors) console.error(`✗ ${e}`)

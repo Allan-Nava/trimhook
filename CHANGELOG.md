@@ -41,6 +41,9 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   (TH-12, TH-20).
 
 ### Fixed
+- CI text named the sibling project: backlog-issues.yml spoke of HG-n ids, and the release
+  notes said the hook "trims Bash output", stale since TH-12 added Read and WebFetch. Both
+  fixed, and check now fails when a workflow names hookgate or an HG-n id (TH-1).
 - A read of a spill file comes back whole. Since TH-12 a `Read` is cut like a Bash
   result, so the model's read of the spill — the file that exists so it can see the
   middle — was cut again, a second spill written and the middle still unseen. A `Read`
