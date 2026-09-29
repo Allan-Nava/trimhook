@@ -34,7 +34,7 @@ and the README saying what it saved and what it hid.
 of `trimhook report` on real work is in the README beside the transcript table, with the
 count of spill files the model actually went back to read.
 
-- [ ] **TH-1 — Run QRSPI on the brief: Questions → Research → Spec → Plan**: input
+- [x] **TH-1 — Run QRSPI on the brief: Questions → Research → Spec → Plan**: input
   `thoughts/TH-1-output-hygiene/00-brief.md`, one fresh session per phase. The open
   design questions it must settle: the default cap (4,000 saves 16%, 8,000 saves 6% on
   the transcripts — at what cost in hidden middles?), what counts as evidence that a
@@ -43,7 +43,10 @@ count of spill files the model actually went back to read.
   accepted), Research done with its addendum, Design D1-D8 written and reviewed against
   `main`. D1 shipped as TH-24; the review left four blocking comments, all written in the
   Review section of `02-design.md` with the per-decision status. Next: re-enter Design for
-  those comments, then Structure and Plan. <!-- th: prio=high size=L labels=hook,benchmark -->
+  those comments, then Structure and Plan. **Done, 2026-09-29:** the review comments
+  resolved (D9 added for TH-26), Structure in fifteen steps, Plan in `04-plan.md` —
+  planned in three fresh sessions because the steps do not fit one. Implementation is
+  TH-27. <!-- th: prio=high size=L labels=hook,benchmark ver=main -->
 - [x] **TH-2 — The PostToolUse cut**: `bin/lib/trim.mjs` — head, tail, marker, line
   boundaries, one cap shared by stdout and stderr with a floor; `updatedToolOutput` in
   Claude Code's Bash shape; `minSaving` so a 9,000-character result is not cut for 1,000.
@@ -134,6 +137,18 @@ count of spill files the model actually went back to read.
   argument is one), or to let the cut stand and have the marker say how to page. The
   executable reproduction is a `todo` test in `test/handlers.test.mjs`; done when it is
   a passing test. <!-- th: prio=high size=S labels=hook -->
+- [ ] **TH-27 — Implement the TH-1 plan**: `thoughts/TH-1-output-hygiene/04-plan.md`,
+  one fresh session per step, progress in `99-progress.md`. Thirteen agent steps — S1 the
+  spill-read exemption (closes TH-26), S2 interrupted results, S3 stray strings in the
+  workflows, S4 `evals/reads.mjs` for three tools and both harnesses, S5 the TH-9
+  protocol file, S6 failure records, S7 per-layer key classes (breaking for repository
+  files; 0.2.0), S8 Codex `continue: false` behind `codex.mode`, S9 `report --cap N` and
+  the written cap rule, S10 the README numbers guarded by `check`, S11 `doctor` reading
+  `bashOutputMaxChars`, S13 and S15 applying the two live verdicts — and two human ones:
+  S12 is TH-9, S14 is TH-10. S1-S7 have no dependencies on each other. Assumptions for the
+  maintainer to confirm are labelled in the plan: 0.2.0 does not wait for TH-10, and the
+  week's verdict is confirmed before the default cap changes.
+  <!-- th: prio=high size=L labels=hook,enhancement -->
 - [x] **TH-13 — Smarter cuts for known formats**: measured with `evals/middles.mjs`
   before building, and **dropped**. The premise was that the cut hides the part saying
   what went wrong. On 287 real cuts (2026-09-24) it does not: 13 carry a line that
