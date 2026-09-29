@@ -23,10 +23,11 @@ Two measurements, both without a key and without a network:
    cut, so the saving is what trimhook adds on top of `BASH_MAX_OUTPUT_LENGTH`, not
    instead of it. Commit the JSON with the table; the table carries its date.
 2. **Live** — install the checkout, work for a week, then `trimhook report`: results,
-   `trimmed` count, characters saved, top commands. The second number that matters is how
-   often the model went and read a spill file — grep the transcripts for `spill/` in
-   `Read` tool inputs. A cap that is never followed by a read can drop; one that is read
-   often is too low.
+   `trimmed` count, characters saved, top commands. The second number that matters is what
+   the model did after a cut: `node evals/reads.mjs` counts, per tool and on both
+   harnesses, the reads of a spill file and the same call made again within the next 12
+   tool uses, and prints the rule's verdict line for a human to confirm. A cap that is
+   never followed by a read can drop; one that is read often is too low.
 
 3. **Judgement** — `node evals/sample-runs.mjs [--n 40] [--seed 1]` prints a bounded,
    seeded sample of the runs a masked collapse would fold, for a human to classify as

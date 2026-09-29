@@ -90,6 +90,12 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   output, no marker, and the turn went on; `decision: block` is recorded as a failed
   call. The README says so, dated; `codex.mode: continue` remains the default shape of
   an opt-in, though on 0.155.1 it leaves the result unreplaced (TH-9).
+- evals/reads.mjs counts per tool and on both harnesses: a spill read is a Read of the
+  spill or a Bash command containing its path; a re-run is the same command, file or
+  URL; every marker in a result counts toward its size, and the cuts of 9,500 characters
+  or more — the ones 8,000 would also make — are counted apart; Codex sessions are
+  walked too, custom and function tool outputs alike. It ends with the D3 verdict line,
+  which a human confirms (TH-1, TH-10).
 - **Breaking for repository config files.** A repository's `.trimhook.json` (or
   `.claude/` and `.codex/trimhook.json`, or the file `TRIMHOOK_CONFIG` names) may no
   longer set `mode`, `spill`, `spillTtlDays` or `codex.replace` — all accepted in 0.1.0 —
