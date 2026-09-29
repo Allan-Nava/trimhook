@@ -13,10 +13,10 @@
 | Step | Status | Session | Commit | Note |
 |---|---|---|---|---|
 | S1 | ⬜ todo | — | — | spill-read exemption, closes TH-26 |
-| S2 | ✅ done | S2 | `30ebe4e` (branch) | `interrupted: true` falls through; README "What a failure does."; no deviation |
+| S2 | ✅ done | S2 | `04eb280` (#36) | `interrupted: true` falls through; README "What a failure does."; no deviation |
 | S3 | ⬜ todo | — | — | |
 | S4 | ⬜ todo | — | — | |
-| S5 | 🔄 in progress | S5 | — | TH-9 protocol file |
+| S5 | ✅ done | S5 | this PR | `evals/codex-live.md`: protocol, pass rule, empty Runs table, pending verdict; no deviation |
 | S6 | 🔄 in progress | S6 | — | |
 | S7 | 🔄 in progress | S7 | — | breaking for repository config files (0.2.0) |
 | S8 | ⏸️ blocked | — | — | waits on S2, S5, S6, S7 |
