@@ -1,10 +1,10 @@
 # 99 · Progress — TH-1 Tool output trimmed at the source
 
-> Shared state across Implement sessions. **Update it before closing every session.**
-> This is the intra-phase compaction artifact: when context passes 40%, this file is
-> all that carries over to the next session.
->
-> It must be self-contained: explicit paths, no reference to session context.
+> Shared state across Implement sessions (backlog item TH-27). **Update it before
+> closing every session.** Self-contained: explicit paths, no reference to session
+> context. The plan is `thoughts/TH-1-output-hygiene/04-plan.md`; one fresh session per
+> step, each on its own branch `th-27-sN`, merged to `main` one at a time with a rebase
+> in between. The orchestrating session keeps this file; step sessions do not edit it.
 
 ---
 
@@ -12,70 +12,40 @@
 
 | Step | Status | Session | Commit | Note |
 |---|---|---|---|---|
-| S1 | ✅ done | 1 | `abc1234` | |
-| S2 | 🔄 in progress | 2 | — | stopped at 42% context |
-| S3 | ⏸️ blocked | — | — | see Deviations D1 |
+| S1 | ⬜ todo | — | — | spill-read exemption, closes TH-26 |
+| S2 | ✅ done | S2 | `30ebe4e` (branch) | `interrupted: true` falls through; README "What a failure does."; no deviation |
+| S3 | ⬜ todo | — | — | |
 | S4 | ⬜ todo | — | — | |
+| S5 | 🔄 in progress | S5 | — | TH-9 protocol file |
+| S6 | 🔄 in progress | S6 | — | |
+| S7 | 🔄 in progress | S7 | — | breaking for repository config files (0.2.0) |
+| S8 | ⏸️ blocked | — | — | waits on S2, S5, S6, S7 |
+| S9 | ⏸️ blocked | — | — | waits on S4, S6 |
+| S10 | ⏸️ blocked | — | — | waits on S3, S9 |
+| S11 | ⏸️ blocked | — | — | waits on S6, S8, S10 |
+| S12 | ⏸️ blocked | — | — | TH-9 live Codex run; waits on S5, S8 |
+| S13 | ⏸️ blocked | — | — | waits on S12 |
+| S14 | ⏸️ blocked | — | — | TH-10 live week; waits on S1, S4, S6, S7, S9 |
+| S15 | ⏸️ blocked | — | — | waits on S14 |
 
 Legend: ⬜ todo · 🔄 in progress · ✅ done · ⏸️ blocked · ❌ failed
+
+Order chosen by the maintainer on 2026-09-29: TH-9 first — S2, S5, S6, S7 in
+parallel, then S8, then S12 and S13 — and the rest after.
 
 ---
 
 ## Where I left off
 
-**Current step:** S2
+**Current step:** S2, S5, S6, S7 (parallel sessions, one worktree each).
 
-**Done so far:**
-- <what has been written, with paths>
-
-**Next concrete action:**
-- <the exact next executable step>
-
-**Modified but uncommitted files:**
-- `src/...` — <what>
+**Next concrete action:** merge the four branches one at a time; then S8.
 
 ---
 
 ## Discoveries
 
-Things found along the way that were not in the plan. **Do not fix them here** — they
-go to a follow-up or a replanning round.
-
-| # | Discovery | Path | Action |
-|---|---|---|---|
-| 1 | | | follow-up / replan / ignore |
-
 ---
 
-## Deviations from the plan
+## Deviations
 
-Points where the plan was wrong or incomplete. Every line here signals an upstream
-artifact that needs correcting.
-
-### D1 · <title>
-
-- **The plan said:** <...>
-- **Reality is:** <...> (`path:line`)
-- **What I did:** stopped / deviated with approval / <...>
-- **Artifact to fix:** `04-plan.md` § S3
-- **Re-enter:** none / Structure / Design / Research / Questions — see `recovery.md`
-- **Landed steps:** S1 keep · S2 adapt (new step) · S3 revert (`<sha>`)
-- **Status:** open / resolved — <corrected artifact § entry, commit>
-
----
-
-## Verifications run
-
-| Command | When | Result |
-|---|---|---|
-| `pytest tests/services/test_x.py -q` | S1 | ✅ 12 passed |
-| `make test` | S1 | ✅ |
-
----
-
-## Context budget
-
-| Session | Step | Peak context | Note |
-|---|---|---|---|
-| 1 | S1 | 28% | |
-| 2 | S2 | 42% | stopped at threshold |
