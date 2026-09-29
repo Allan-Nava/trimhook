@@ -17,37 +17,37 @@
 
 ## v0.1.0 — One cut, one number
 
-- [x] **TH-1** — Run QRSPI on the brief: Questions → Research → Spec → Plan · high · L · hook, benchmark · `main`
-- [x] **TH-2** — The PostToolUse cut · high · M · hook · `main`
-- [x] **TH-3** — Spill files · high · S · hook · `main`
-- [x] **TH-4** — Config with a trust order · med · S · hook · `main`
-- [x] **TH-5** — doctor and report · med · S · enhancement · `main`
-- [x] **TH-6** — Transcript benchmark · high · M · benchmark · `main`
-- [x] **TH-7** — Manifests, check, CI, release by tag, site · med · M · project, release · `main`
-- [x] **TH-8** — Backlog as the single source of truth · low · S · project · `main`
-- [x] **TH-9** — Verify the Codex replacement live · high · S · hook, tests · `main`
+- [x] **TH-1** — Run QRSPI on the brief: Questions → Research → Spec → Plan · high · L · hook, benchmark · `0.2.0`
+- [x] **TH-2** — The PostToolUse cut · high · M · hook · `0.2.0`
+- [x] **TH-3** — Spill files · high · S · hook · `0.2.0`
+- [x] **TH-4** — Config with a trust order · med · S · hook · `0.2.0`
+- [x] **TH-5** — doctor and report · med · S · enhancement · `0.2.0`
+- [x] **TH-6** — Transcript benchmark · high · M · benchmark · `0.2.0`
+- [x] **TH-7** — Manifests, check, CI, release by tag, site · med · M · project, release · `0.2.0`
+- [x] **TH-8** — Backlog as the single source of truth · low · S · project · `0.2.0`
+- [x] **TH-9** — Verify the Codex replacement live · high · S · hook, tests · `0.2.0`
 - [ ] **TH-10** — Live measurement, one week · high · M · benchmark
 - [x] **TH-11** — First release 0.1.0 · med · S · release · `0.1.0`
 
 ## v0.2.0 — Beyond Bash
 
-- [x] **TH-12** — Other tools · med · M · hook, benchmark · `main`
-- [x] **TH-20** — Verify the Read and WebFetch replacement live · high · S · hook, tests · `main`
-- [x] **TH-21** — The log needs one home · high · S · hook · `main`
-- [x] **TH-24** — No spill without a cut · high · S · hook · `main`
-- [x] **TH-26** — A read of a spill file is cut again · high · S · hook · `main`
+- [x] **TH-12** — Other tools · med · M · hook, benchmark · `0.2.0`
+- [x] **TH-20** — Verify the Read and WebFetch replacement live · high · S · hook, tests · `0.2.0`
+- [x] **TH-21** — The log needs one home · high · S · hook · `0.2.0`
+- [x] **TH-24** — No spill without a cut · high · S · hook · `0.2.0`
+- [x] **TH-26** — A read of a spill file is cut again · high · S · hook · `0.2.0`
 - [ ] **TH-27** — Implement the TH-1 plan · high · L · hook, enhancement
-- [x] **TH-34** — The Codex log claims savings the model never got · med · S · hook · `main`
+- [x] **TH-34** — The Codex log claims savings the model never got · med · S · hook · `0.2.0`
 - [x] **TH-13** — Smarter cuts for known formats · low · L · hook, enhancement · `dropped`
-- [x] **TH-22** — Count what a cut costs, not only what it saves · high · M · benchmark · `main`
-- [x] **TH-23** — The log recorded values, not command names · high · S · hook · `main`
-- [x] **TH-14** — Social preview and brand assets · low · S · docs · `main`
+- [x] **TH-22** — Count what a cut costs, not only what it saves · high · M · benchmark · `0.2.0`
+- [x] **TH-23** — The log recorded values, not command names · high · S · hook · `0.2.0`
+- [x] **TH-14** — Social preview and brand assets · low · S · docs · `0.2.0`
 
 ## v0.3.0 — Less of the same
 
-- [x] **TH-15** — What the repetition is worth · high · M · benchmark · `main`
-- [x] **TH-16** — Collapse the runs · med · M · hook, enhancement · `main`
-- [x] **TH-19** — The false-positive rate of a masked collapse · med · M · benchmark, hook · `main`
+- [x] **TH-15** — What the repetition is worth · high · M · benchmark · `0.2.0`
+- [x] **TH-16** — Collapse the runs · med · M · hook, enhancement · `0.2.0`
+- [x] **TH-19** — The false-positive rate of a masked collapse · med · M · benchmark, hook · `0.2.0`
 - [x] **TH-17** — The same result twice · med · L · hook · `dropped`
 - [x] **TH-18** — One spill per content · low · S · hook · `dropped`
 - [x] **TH-25** — Format-native lossless folds, from headroom · low · M · benchmark · `dropped`
@@ -55,8 +55,8 @@
 ## v0.4.0 — What headroom measured
 
 - [ ] **TH-28** — What a cut Read costs an Edit · high · M · benchmark, hook
-- [x] **TH-29** — Instruction files are never cut · med · S · hook · `main`
-- [x] **TH-30** — The cut is byte-deterministic, and a test says so · med · S · tests · `main`
-- [x] **TH-31** — A holdout, so the cost is measured rather than estimated · med · M · benchmark, hook · `main`
+- [x] **TH-29** — Instruction files are never cut · med · S · hook · `0.2.0`
+- [x] **TH-30** — The cut is byte-deterministic, and a test says so · med · S · tests · `0.2.0`
+- [x] **TH-31** — A holdout, so the cost is measured rather than estimated · med · M · benchmark, hook · `0.2.0`
 - [x] **TH-32** — JSON-aware cuts, from headroom's SmartCrusher · low · M · benchmark · `dropped`
-- [x] **TH-33** — Cite headroom as prior art for D9 · low · S · docs · `main`
+- [x] **TH-33** — Cite headroom as prior art for D9 · low · S · docs · `0.2.0`

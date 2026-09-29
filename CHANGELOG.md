@@ -5,6 +5,13 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-29
+
+The TH-1 design, implemented (TH-27), and the v0.4.0 items taken from headroom. **One
+breaking change**, for repository config files only: see the first entry under Changed.
+The live week (TH-10) is still open, so the default cap stays 8,000; this release does
+not wait for it (TH-1, assumption A1).
+
 ### Added
 - `holdout` (0 to 0.5, default 0, user file or environment only): that share of the
   results trimhook would cut is left whole and logged `kept, holdout: true` — a control
