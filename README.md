@@ -375,7 +375,8 @@ it is; if the model never reads them, the cap can drop.
   transplant, its lossless folds, was worth 1.5 points here (`BACKLOG.md`, TH-25). A cut
   made once, at write time, also leaves history bytes alone, so the prompt cache never
   sees them change; a proxy that recompresses every request has to be byte-deterministic
-  to promise the same.
+  to promise the same. A test holds trimhook to it: the same result gives the same bytes,
+  marker and spill path included, in one process or two (TH-30).
 
 ## License
 

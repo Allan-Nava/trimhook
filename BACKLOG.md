@@ -312,14 +312,16 @@ the cut would take 2.42 M characters.
   22 such Reads in the transcripts, one over the cut, 0.12% of what the cut takes — so the
   exemption costs nothing. **Done 2026-09-29:** `readsInstructions` in `bin/lib/store.mjs`, logged
   `instructions: true`. <!-- th: prio=med size=S labels=hook ver=main -->
-- [ ] **TH-30 — The cut is byte-deterministic, and a test says so**: the README's
+- [x] **TH-30 — The cut is byte-deterministic, and a test says so**: the README's
   cache-safety claim (TH-25) rests on the cut being a pure function of its input — the
   same result gives the same bytes, marker and spill path included — so a prompt-cache
   prefix never changes. headroom documents the failure this rules out: a compressor that
   is not byte-deterministic loses the whole prefix discount on the next turn
   (`compress_assistant_text_blocks`, its `content_router.py`). Add the test: the same
   input through `postToolUse` twice, and through the CLI in two processes, gives
-  identical stdout. <!-- th: prio=med size=S labels=tests -->
+  identical stdout. **Done 2026-09-29:** three tests in `test/handlers.test.mjs`; the one gap —
+  a spill named from the clock when the event has no tool-use id — now named from a
+  content hash. <!-- th: prio=med size=S labels=tests ver=main -->
 - [ ] **TH-31 — A holdout, so the cost is measured rather than estimated**: headroom
   reports its output savings as an estimate with a confidence range, and offers holding
   out 10% of conversations for a measured number. trimhook's week (TH-10) has the same

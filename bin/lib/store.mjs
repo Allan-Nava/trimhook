@@ -3,6 +3,7 @@
 // files, which do hold the output the model did not see. Every write is best-effort:
 // a full disk must never change what the model reads.
 import { appendFileSync, chmodSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { basename, dirname, join, resolve, sep } from 'node:path'
 
 const safe = (fn) => {
@@ -39,8 +40,11 @@ const slug = (s) => String(s || 'no-session').replace(/[^\w-]/g, '_').slice(0, 8
 // Where a result's whole output goes. Deterministic from the session and the tool-use
 // id, so the marker can name the file before it exists — which is what lets the handler
 // decide first and write only when the cut is taken (TH-24).
-export function spillPath(dir, sessionId, toolUseId) {
-  return join(dir, 'spill', slug(sessionId), `${slug(toolUseId || Date.now())}.txt`)
+export function spillPath(dir, sessionId, toolUseId, content) {
+  // TH-30: with no tool-use id the name comes from the content, never the clock, so the
+  // marker naming the file is the same bytes every time the same result comes through.
+  const id = toolUseId || (content === undefined ? String(Date.now()) : `c-${createHash('sha256').update(content).digest('hex').slice(0, 16)}`)
+  return join(dir, 'spill', slug(sessionId), `${slug(id)}.txt`)
 }
 
 // TH-26 (D9): does this tool use read a spill file back? Such a read comes back whole —
@@ -94,7 +98,7 @@ export function writeSpill(p, stdout, stderr) {
 }
 
 export function spill(dir, sessionId, toolUseId, stdout, stderr) {
-  return writeSpill(spillPath(dir, sessionId, toolUseId), stdout, stderr)
+  return writeSpill(spillPath(dir, sessionId, toolUseId, `${stdout}\0${stderr}`), stdout, stderr)
 }
 
 export function pruneSpill(dir, ttlMs, now = Date.now()) {

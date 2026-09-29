@@ -1,7 +1,9 @@
+import { spawnSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { commandPrefix, postToolUse } from '../bin/lib/handlers.mjs'
 import { env, input, lines, tmp } from './helpers.mjs'
 
@@ -344,4 +346,51 @@ test('TH-29: only those names and folders — look-alikes, other tools and Bash 
   const bash = await postToolUse(input(lines(5000), { tool_input: { command: 'cat CLAUDE.md' } }), { env: env(d) })
   assert.ok(bash, 'TH-29 covers Read only; a Bash cat of an instruction file is cut as before')
   assert.equal(log(d).filter((r) => r.instructions).length, 0)
+})
+
+// TH-30: the cut is a pure function of its input — the same result gives the same bytes,
+// marker and spill path included. The README's cache-safety claim rests on it.
+test('TH-30: the same input gives identical output — Bash, collapsed runs, Read, WebFetch, Codex', async () => {
+  const d = tmp()
+  const runs = lines(3000) + '\n' + 'same line\n'.repeat(400) + lines(3000)
+  const cases = [
+    input(lines(5000)),
+    input(runs),
+    input('', { tool_name: 'Read', tool_input: { file_path: '/a/big.ts' }, tool_response: { type: 'text', file: { filePath: '/a/big.ts', content: lines(5000), numLines: 5000, startLine: 1, totalLines: 5000 } } }),
+    input('', { tool_name: 'WebFetch', tool_input: { url: 'https://e.x/a' }, tool_response: { bytes: 1, code: 200, codeText: 'OK', result: lines(5000), durationMs: 1, url: 'https://e.x/a' } }),
+  ]
+  for (const c of cases) {
+    const a = JSON.stringify(await postToolUse(c, { env: env(d) }))
+    const b = JSON.stringify(await postToolUse(c, { env: env(d) }))
+    assert.notEqual(a, 'null')
+    assert.equal(a, b)
+  }
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ cap: 8000, codex: { replace: true } }))
+  const codex = { TRIMHOOK_DATA: d, PLUGIN_ROOT: '/codex-plugin', TRIMHOOK_USER_CONFIG: join(d, 'user.json') }
+  const ci = input(lines(5000), { turn_id: 't1', tool_response: lines(5000) })
+  delete ci.hook_event_name
+  assert.equal(JSON.stringify(await postToolUse(ci, { env: codex })), JSON.stringify(await postToolUse(ci, { env: codex })))
+})
+
+test('TH-30: without a tool_use_id the spill is named from the content, so the marker is still stable', async () => {
+  const d = tmp()
+  const noId = input(lines(5000)); delete noId.tool_use_id
+  const a = await postToolUse(noId, { env: env(d), now: () => 1 })
+  const b = await postToolUse(noId, { env: env(d), now: () => 2 })
+  assert.equal(a.hookSpecificOutput.updatedToolOutput.stdout, b.hookSpecificOutput.updatedToolOutput.stdout)
+  const other = input(lines(5001)); delete other.tool_use_id
+  const c = await postToolUse(other, { env: env(d) })
+  const path = (o) => o.hookSpecificOutput.updatedToolOutput.stdout.match(/Full output: (\S+)\]/)[1]
+  assert.notEqual(path(a), path(c), 'different content, different file')
+})
+
+test('TH-30: two processes print the same bytes for the same event', () => {
+  const d = tmp()
+  const event = JSON.stringify(input(lines(5000)))
+  const cli = join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'trimhook.mjs')
+  const run = () => spawnSync(process.execPath, [cli, 'post-tool-use'], { input: event, env: { PATH: process.env.PATH, ...env(d) }, encoding: 'utf8' })
+  const one = run(), two = run()
+  assert.equal(one.status, 0)
+  assert.ok(one.stdout.length > 1000)
+  assert.equal(one.stdout, two.stdout)
 })

@@ -48,6 +48,11 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   (TH-12, TH-20).
 
 ### Fixed
+- The cut is byte-deterministic, and three tests say so: the same event gives identical
+  output for Bash, collapsed runs, Read, WebFetch and Codex, and two processes print the
+  same bytes. One gap closed on the way — with no tool-use id the spill was named from the
+  clock, so the marker changed between calls; it is now named from a hash of the content
+  (TH-30).
 - An instruction file is never cut. A `Read` of `CLAUDE.md`, `CLAUDE.local.md`,
   `AGENTS.md`, `GEMINI.md`, `SKILL.md` or anything under `.claude/commands/`,
   `.claude/agents/` or `.claude/skills/` comes back whole and is logged `kept,

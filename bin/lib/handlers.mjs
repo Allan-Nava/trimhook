@@ -33,7 +33,7 @@ export async function postToolUse(input, deps = {}) {
 
   // TH-24: the path is decided now and the file written only once the cut is taken, so a
   // result the model sees in full never leaves a copy on disk.
-  let path = cfg.spill && cfg.mode === 'trim' ? spillPath(dir, input.session_id, input.tool_use_id) : null
+  let path = cfg.spill && cfg.mode === 'trim' ? spillPath(dir, input.session_id, input.tool_use_id, `${res.stdout}\0${res.stderr}`) : null
   // TH-16, and it runs first on purpose: the cut should spend its budget on distinct
   // content, not on the same line again. The spill below is written from the original,
   // so what a run loses here is recoverable exactly as an elided middle is.
