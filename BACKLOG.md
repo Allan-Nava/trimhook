@@ -19,7 +19,7 @@ to `main` that changes this file.
 ```
 
 - The **id never changes**; a new item takes the next free number.
-- `- [ ]` open, `- [x]` shipped with `ver=x.y.z` (or `ver=main` when merged, unreleased);
+- `- [ ]` open, `- [x]` shipped with `ver=x.y.z` (or `ver=0.2.0` when merged, unreleased);
   decided against → ticked with `ver=dropped` and the reason in the body.
 - Metadata: `prio` (`high|med|low`), `size` (`S|M|L|XL`), `labels` from: `hook`,
   `benchmark`, `release`, `docs`, `project`, `tests`, `enhancement`.
@@ -46,36 +46,36 @@ count of spill files the model actually went back to read.
   those comments, then Structure and Plan. **Done, 2026-09-29:** the review comments
   resolved (D9 added for TH-26), Structure in fifteen steps, Plan in `04-plan.md` —
   planned in three fresh sessions because the steps do not fit one. Implementation is
-  TH-27. <!-- th: prio=high size=L labels=hook,benchmark ver=main -->
+  TH-27. <!-- th: prio=high size=L labels=hook,benchmark ver=0.2.0 -->
 - [x] **TH-2 — The PostToolUse cut**: `bin/lib/trim.mjs` — head, tail, marker, line
   boundaries, one cap shared by stdout and stderr with a floor; `updatedToolOutput` in
   Claude Code's Bash shape; `minSaving` so a 9,000-character result is not cut for 1,000.
-  <!-- th: prio=high size=M labels=hook ver=main -->
+  <!-- th: prio=high size=M labels=hook ver=0.2.0 -->
 - [x] **TH-3 — Spill files**: the whole output at `<data>/spill/<session>/<tool-use>.txt`,
   0600, named in the marker, pruned after `spillTtlDays`; no cut without a spill.
-  <!-- th: prio=high size=S labels=hook ver=main -->
+  <!-- th: prio=high size=S labels=hook ver=0.2.0 -->
 - [x] **TH-4 — Config with a trust order**: defaults → `~/.trimhook.json` →
   repository file, or `TRIMHOOK_CONFIG` in its place → env; every value validated with
   the default winning; the repository layer classed per key since TH-1 (either way,
   narrow only, denied); `perCommand` caps by first word or two; `audit` mode.
-  <!-- th: prio=med size=S labels=hook ver=main -->
+  <!-- th: prio=med size=S labels=hook ver=0.2.0 -->
 - [x] **TH-5 — doctor and report**: harness by the signal that decided it, data dir
   writability, config problems, the harness's own `BASH_MAX_OUTPUT_LENGTH` below ours;
-  results, characters saved, top commands. <!-- th: prio=med size=S labels=enhancement ver=main -->
+  results, characters saved, top commands. <!-- th: prio=med size=S labels=enhancement ver=0.2.0 -->
 - [x] **TH-6 — Transcript benchmark**: `evals/local.mjs`, sizes only, cap sweep, top
   commands, Claude Code and Codex sessions; 2026-09-23: 28,219 results, 6% saved at
-  8,000, 16% at 4,000. <!-- th: prio=high size=M labels=benchmark ver=main -->
+  8,000, 16% at 4,000. <!-- th: prio=high size=M labels=benchmark ver=0.2.0 -->
 - [x] **TH-7 — Manifests, check, CI, release by tag, site**: four manifests held to one
   version; `check` also requires the README to state fail-open, "nothing leaves the
   machine" and the harness cap; CI on Node 18/20/22/24; OIDC release; Pages from README.
-  <!-- th: prio=med size=M labels=project,release ver=main -->
+  <!-- th: prio=med size=M labels=project,release ver=0.2.0 -->
 - [x] **TH-8 — Backlog as the single source of truth**: this file, the generated
-  roadmap, the one-way issue sync, the planner test. <!-- th: prio=low size=S labels=project ver=main -->
+  roadmap, the one-way issue sync, the planner test. <!-- th: prio=low size=S labels=project ver=0.2.0 -->
 - [x] **TH-9 — Verify the Codex replacement live**: `decision: block` with the trimmed
   text is documented to replace the result; observe on Codex 0.155+ what the model sees,
   whether it reads as an error, and whether `continue: false` reads better; then flip
   `codex.replace` to default on or record why not. The protocol and its pass rule are
-  in `evals/codex-live.md` (TH-1, D5): three runs per `codex.mode`, judged on `Bash`. Done 2026-09-29: neither shape passed on Codex 0.155.1 (`evals/codex-live.md`); `codex.replace` stays opt-in, and the README says what each did. <!-- th: prio=high size=S labels=hook,tests ver=main -->
+  in `evals/codex-live.md` (TH-1, D5): three runs per `codex.mode`, judged on `Bash`. Done 2026-09-29: neither shape passed on Codex 0.155.1 (`evals/codex-live.md`); `codex.replace` stays opt-in, and the README says what each did. <!-- th: prio=high size=S labels=hook,tests ver=0.2.0 -->
 - [ ] **TH-10 — Live measurement, one week**: a week at `cap: 4000` with all three tools;
   `trimhook report` (and `--cap 8000`, `--cap 12000`) for the saving, `node evals/reads.mjs`
   for the spill reads and re-runs per tool; both numbers into the README beside the
@@ -96,7 +96,7 @@ count of spill files the model actually went back to read.
   off real transcripts — Read cuts `file.content`, WebFetch cuts `result`, every other
   field carried through — and the matcher now reads `Bash|Read|WebFetch`. `Agent` is left
   out: its result is a list of message blocks, not one text field.
-  <!-- th: prio=med size=M labels=hook,benchmark ver=main -->
+  <!-- th: prio=med size=M labels=hook,benchmark ver=0.2.0 -->
 - [x] **TH-20 — Verify the Read and WebFetch replacement live**: done 2026-09-24 in a
   Claude Code session with the checkout installed as a plugin. A `Read` of 23,715
   characters came back at 7,923 with the marker inside `file.content` and the whole file
@@ -104,7 +104,7 @@ count of spill files the model actually went back to read.
   received the cut text — so the saving is real, not a replacement refused in silence. A
   `seq` of 11,392 characters confirmed Bash in the same session. WebFetch is still only
   proven against its recorded shape, not live.
-  <!-- th: prio=high size=S labels=hook,tests ver=main -->
+  <!-- th: prio=high size=S labels=hook,tests ver=0.2.0 -->
 - [x] **TH-21 — The log needs one home**: found while verifying TH-20. `dataDir()`
   preferred `CLAUDE_PLUGIN_DATA`, which the harness sets for the hook process alone, so
   the hook wrote to `~/.claude/plugins/data/trimhook-inline` while `trimhook report` in a
@@ -112,7 +112,7 @@ count of spill files the model actually went back to read.
   unreadable by the one command that exists to read it, and TH-10 is a week of exactly
   that command. Now `TRIMHOOK_DATA` or `~/.trimhook`, nothing else; the marker's spill
   paths are absolute either way, so the model never depended on it.
-  <!-- th: prio=high size=S labels=hook ver=main -->
+  <!-- th: prio=high size=S labels=hook ver=0.2.0 -->
 - [x] **TH-24 — No spill without a cut**: TH-3 promises "no cut without a spill"; the
   handler also does the converse wrong. `postToolUse` in `bin/lib/handlers.mjs` writes the
   spill *before* `trimResult` decides, so every result of a listed tool lands on disk,
@@ -127,7 +127,7 @@ count of spill files the model actually went back to read.
   writes only when it replaces. The same change restores rule 3, which the old order
   broke the other way: a failed write used to cut anyway, with no pointer, and now
   leaves the result whole (`spillFailed` in the log). Old orphans age out under the
-  existing prune. <!-- th: prio=high size=S labels=hook ver=main -->
+  existing prune. <!-- th: prio=high size=S labels=hook ver=0.2.0 -->
 - [x] **TH-26 — A read of a spill file is cut again**: the spill exists so the model can
   read the middle it did not see — but since TH-12 a `Read` is cut like a Bash result,
   and nothing exempted the spill directory. Reproduced on 2026-09-28: a 3,000-line Bash
@@ -138,7 +138,7 @@ count of spill files the model actually went back to read.
   `<data>/spill/`, and a Bash command containing that directory's path — absolute, or
   `~/…` when the data dir is under home — come back whole and are logged `kept` with
   `spillRead: true`; `WebFetch` is never exempt. The reproduction is an ordinary test in
-  `test/handlers.test.mjs`. <!-- th: prio=high size=S labels=hook ver=main -->
+  `test/handlers.test.mjs`. <!-- th: prio=high size=S labels=hook ver=0.2.0 -->
 - [ ] **TH-27 — Implement the TH-1 plan**: `thoughts/TH-1-output-hygiene/04-plan.md`,
   one fresh session per step, progress in `99-progress.md`. Thirteen agent steps — S1 the
   spill-read exemption (closes TH-26), S2 interrupted results, S3 stray strings in the
@@ -162,7 +162,7 @@ count of spill files the model actually went back to read.
   that run has happened). **Done 2026-09-29, and wider than filed:** `summarize` had
   counted every non-kept result as saved, so audit mode's `would-trim` inflated the
   figure too. Now the outcome is `unconfirmed` for a Codex `continue` reply, and `report`
-  splits "saved" (only `trimmed`) from "would save". <!-- th: prio=med size=S labels=hook ver=main -->
+  splits "saved" (only `trimmed`) from "would save". <!-- th: prio=med size=S labels=hook ver=0.2.0 -->
 - [x] **TH-13 — Smarter cuts for known formats**: measured with `evals/middles.mjs`
   before building, and **dropped**. The premise was that the cut hides the part saying
   what went wrong. On 287 real cuts (2026-09-24) it does not: 13 carry a line that
@@ -185,7 +185,7 @@ count of spill files the model actually went back to read.
   a reworded marker cannot leave the scan silently reading zero; `local.mjs` and
   `middles.mjs` now share that one definition too. Reads near zero until trimhook has
   been running for a while, which is what TH-10 is.
-  <!-- th: prio=high size=M labels=benchmark ver=main -->
+  <!-- th: prio=high size=M labels=benchmark ver=0.2.0 -->
 - [x] **TH-23 — The log recorded values, not command names**: found the moment TH-22
   printed its table. `commandPrefix` took the first word, and a leading assignment makes
   the first word a value — `AWS_SECRET_ACCESS_KEY=… npm run deploy` wrote the key to
@@ -194,13 +194,13 @@ count of spill files the model actually went back to read.
   path, both words are capped at 32 characters, and a command that is nothing but
   assignments logs `(env)`. This is rule 4 of `CLAUDE.md` — sizes only, never the output
   — which the log had been quietly breaking since 0.0.1.
-  <!-- th: prio=high size=S labels=hook ver=main -->
+  <!-- th: prio=high size=S labels=hook ver=0.2.0 -->
 - [x] **TH-14 — Social preview and brand assets**: `assets/social-preview.html` rendered
   to `assets/social-preview.png` by `scripts/social.mjs` with headless Chrome, 1280×640
   at 2×, no dependency added. The card shows the marker line itself, because that line is
   the product. The mark is `assets/logo.svg` referenced rather than copied, so it cannot
   drift from the favicon; `check` now fails when the PNG the meta tags name is missing,
-  which it had been for weeks. <!-- th: prio=low size=S labels=docs ver=main -->
+  which it had been for weeks. <!-- th: prio=low size=S labels=docs ver=0.2.0 -->
 
 ## v0.3.0 — Less of the same <!-- ms: phase=later -->
 
@@ -230,21 +230,21 @@ four items this milestone opened with, one shipped and three are closed by measu
   marginal: counted inside the head and tail the cut keeps, not over the whole output.
   2026-09-23, 28,545 results: line runs 1,011,413 characters, **3.8%** of what the model
   reads; repeated results 100,217, **0.4%**. In the README, dated.
-  <!-- th: prio=high size=M labels=benchmark ver=main -->
+  <!-- th: prio=high size=M labels=benchmark ver=0.2.0 -->
 - [x] **TH-16 — Collapse the runs**: a run of identical lines becomes its first line and
   a count, before the cut, so the budget buys distinct content; the spill keeps the
   output whole, so nothing it drops is unrecoverable. `bin/lib/collapse.mjs`, pure and
   unit-tested; `collapse: { enabled, minRun, strict }`. On and strict by default —
   byte-identical lines only, 0.2% of what the model reads, which cannot cost anything.
   The masked comparison is worth 2.6% and stays opt-in until TH-19 measures what it
-  folds by mistake. <!-- th: prio=med size=M labels=hook,enhancement ver=main -->
+  folds by mistake. <!-- th: prio=med size=M labels=hook,enhancement ver=0.2.0 -->
 - [x] **TH-19 — The false-positive rate of a masked collapse**: `evals/sample-runs.mjs`,
   a seeded sample of the runs a masked collapse folds and a strict one does not, for a
   human to judge. 2026-09-23, 40 runs of 63, seed 1: **38 content, 2 noise — 95% by run,
   98.8% by character**. Table rows, grep hits, version tags, log lines differing by a
   timestamp; not one progress bar, because a redrawn one barely reaches a transcript.
   `strict: false` stays off and is documented as not a default in waiting.
-  <!-- th: prio=med size=M labels=benchmark,hook ver=main -->
+  <!-- th: prio=med size=M labels=benchmark,hook ver=0.2.0 -->
 - [x] **TH-17 — The same result twice**: a result whose hash matches one already seen in
   the session would be replaced by a marker naming the earlier `tool_use_id` and its
   spill. **Dropped on the measurement** (TH-15, 2026-09-23): 1,052 repeated results in
@@ -315,7 +315,7 @@ the cut would take 2.42 M characters.
   `.claude/skills/`, the same way D9 exempts a spill read. A correctness fix, not a saving:
   22 such Reads in the transcripts, one over the cut, 0.12% of what the cut takes — so the
   exemption costs nothing. **Done 2026-09-29:** `readsInstructions` in `bin/lib/store.mjs`, logged
-  `instructions: true`. <!-- th: prio=med size=S labels=hook ver=main -->
+  `instructions: true`. <!-- th: prio=med size=S labels=hook ver=0.2.0 -->
 - [x] **TH-30 — The cut is byte-deterministic, and a test says so**: the README's
   cache-safety claim (TH-25) rests on the cut being a pure function of its input — the
   same result gives the same bytes, marker and spill path included — so a prompt-cache
@@ -325,7 +325,7 @@ the cut would take 2.42 M characters.
   input through `postToolUse` twice, and through the CLI in two processes, gives
   identical stdout. **Done 2026-09-29:** three tests in `test/handlers.test.mjs`; the one gap —
   a spill named from the clock when the event has no tool-use id — now named from a
-  content hash. <!-- th: prio=med size=S labels=tests ver=main -->
+  content hash. <!-- th: prio=med size=S labels=tests ver=0.2.0 -->
 - [x] **TH-31 — A holdout, so the cost is measured rather than estimated**: headroom
   reports its output savings as an estimate with a confidence range, and offers holding
   out 10% of conversations for a measured number. trimhook's week (TH-10) has the same
@@ -338,7 +338,7 @@ the cut would take 2.42 M characters.
   `evals/reads.mjs`. The comparison is on re-runs — a held-out result has no spill to read
   back — and the next turn's tokens are left out: in a transcript they move with
   everything else in the turn, so they would not isolate the cut.
-  <!-- th: prio=med size=M labels=benchmark,hook ver=main -->
+  <!-- th: prio=med size=M labels=benchmark,hook ver=0.2.0 -->
 - [x] **TH-32 — JSON-aware cuts, from headroom's SmartCrusher**: headroom's JSON crusher
   reaches 90% on repeated arrays, and a head-and-tail cut of a JSON document leaves it
   unbalanced. **Dropped on the measurement:** 2 Bash results that are whole JSON
@@ -348,4 +348,4 @@ the cut would take 2.42 M characters.
 - [x] **TH-33 — Cite headroom as prior art for D9**: headroom excludes its own
   `headroom_retrieve` tool from recompression, because a recompressed original writes a
   marker nobody can redeem — the same reason D9 exempts a read of a spill file. One line
-  in the Design. <!-- th: prio=low size=S labels=docs ver=main -->
+  in the Design. <!-- th: prio=low size=S labels=docs ver=0.2.0 -->

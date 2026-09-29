@@ -9,13 +9,16 @@ one line that says how much is missing and **where the whole output is**, and lo
 saved. Nothing is decided by a model, nothing leaves the machine, and when anything goes
 wrong the model sees exactly what it would have seen without the plugin.
 
-> **Status: 0.1.0. The mechanism is verified live; the numbers are still from
-> transcripts.** The hook, the spill files, `doctor` and `report` are in and released,
-> and a live Claude Code session on 2026-09-24 confirmed the harness accepts the
-> replacement for `Bash` and for `Read`. What is still unmeasured is the part only time
-> can give: what it saves over a week of real work, and whether a head-and-tail ever hid
-> something the model needed (TH-10). Until that lands the default cap is a reasoned
-> choice rather than a measured one.
+> **Status: 0.2.0. The mechanism is verified live; the default cap is still from
+> transcripts.** The hook, the spill files, `doctor` and `report` are released, and a
+> live Claude Code session on 2026-09-24 confirmed the harness accepts the replacement
+> for `Bash` and for `Read`. 0.2.0 adds what the TH-1 design settled — a spill read and
+> an instruction file are never cut, a repository config file may no longer set the keys
+> that keep a cut recoverable (see the CHANGELOG: breaking for such files), and `report`
+> counts as saved only what the model received. On Codex the replacement stays opt-in:
+> the live run of 2026-09-29 found neither shape applies cleanly on 0.155.1. What is
+> still unmeasured is the part only time can give — a week of real work at cap 4,000
+> (TH-10) — so the default cap is a reasoned choice rather than a measured one.
 
 ## Why a hook and not a setting
 
