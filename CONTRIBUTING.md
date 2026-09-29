@@ -112,3 +112,8 @@ git tag trimhook--v{version} && git push origin trimhook--v{version}
 The tag triggers `release.yml`: version check, tests, publish, wait for the registry,
 GitHub release, close the milestone whose title starts with `v{version}`. Re-run with
 `gh workflow run Release -f tag=trimhook--v{version}`; every step is idempotent.
+
+The notes open with the version's CHANGELOG section (`scripts/release-notes.mjs`), then
+the install lines, then GitHub's list of pull requests — so write the CHANGELOG for the
+reader who is upgrading. A **Breaking** entry goes first under its heading; `npm test`
+fails when it does not, and fails when `release.yml` stops calling the script (TH-35).

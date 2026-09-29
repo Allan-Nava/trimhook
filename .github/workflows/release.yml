@@ -138,8 +138,18 @@ jobs:
             echo "::notice::release $TAG already exists — leaving it as it is"
             exit 0
           fi
+          # TH-35: the notes open with this version's CHANGELOG section — a Breaking entry is
+          # first under its heading, so it is the first thing an upgrader reads. The script
+          # exits 1 when the section is missing, and the release stops before it is created.
+          node scripts/release-notes.mjs "$VERSION" > /tmp/section.md
           gh release create "$TAG" --title "v$VERSION" --generate-notes --verify-tag
           {
+            echo "## What's in $VERSION"
+            echo
+            cat /tmp/section.md
+            echo
+            echo "---"
+            echo
             echo "## Install"
             echo
             echo '```'
