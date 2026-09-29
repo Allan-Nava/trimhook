@@ -62,21 +62,34 @@ test('per-command caps and the env cap apply; a repository file is read', async 
   assert.ok(big.hookSpecificOutput.updatedToolOutput.stdout.length <= 3000)
 })
 
-test('Codex: measured only until codex.replace is on; then decision block carries the trimmed text', async () => {
+test('Codex: measured only until codex.replace is on; then continue false (default) or decision block (codex.mode) carries the trimmed text', async () => {
   const d = tmp()
   const codex = { TRIMHOOK_DATA: d, PLUGIN_ROOT: '/codex-plugin', TRIMHOOK_USER_CONFIG: join(d, 'user.json') }
   const codexInput = input(lines(5000), { turn_id: 't1', tool_response: lines(5000) })
   delete codexInput.hook_event_name
   assert.equal(await postToolUse(codexInput, { env: codex }), null)
   assert.equal(log(d)[0].outcome, 'would-trim')
-  writeFileSync(join(d, 'user.json'), JSON.stringify({ codex: { replace: true } }))
+  // The explicit cap pins the 8,000 bounds below, so the default can move without this test.
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ cap: 8000, codex: { replace: true } }))
   const out = await postToolUse(codexInput, { env: codex })
-  assert.equal(out.decision, 'block')
-  assert.ok(out.reason.length <= 8000)
-  assert.match(out.reason, /trimhook: [\d,]+ of/)
-  assert.match(out.systemMessage, /^trimhook: /)
-  assert.equal(log(d)[1].outcome, 'trimmed')
-  assert.equal(log(d)[1].harness, 'codex')
+  assert.equal(out.continue, false)
+  assert.equal(typeof out.stopReason, 'string')
+  assert.equal('decision' in out, false)
+  const cut = out.stopReason.lastIndexOf('\n')
+  const last = out.stopReason.slice(cut + 1)
+  const body = out.stopReason.slice(0, cut)
+  assert.match(last, /^trimhook: [\d,]+ characters elided from this result; the whole output is at .+\.txt\.$/)
+  assert.ok(body.length <= 8000)
+  assert.match(body, /trimhook: [\d,]+ of/)
+  assert.ok(body.endsWith('line 5000'))
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ cap: 8000, codex: { replace: true, mode: 'block' } }))
+  const blocked = await postToolUse(codexInput, { env: codex })
+  assert.equal(blocked.decision, 'block')
+  assert.ok(blocked.reason.endsWith('\n' + blocked.systemMessage))
+  assert.match(blocked.systemMessage, /^trimhook: /)
+  assert.equal('continue' in blocked, false)
+  assert.deepEqual(log(d).map((r) => r.outcome), ['would-trim', 'trimmed', 'trimmed'])
+  assert.equal(log(d)[2].harness, 'codex')
 })
 
 test('a broken config is a problem for doctor, not a change to the result', async () => {

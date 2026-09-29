@@ -42,7 +42,7 @@ trimhook sits under the harness's ceiling and does three things a flat cut does 
 
 | Event | Match | Decision | Effect |
 |---|---|---|---|
-| `PostToolUse` | `Bash`, `Read`, `WebFetch` | none — the tool has already run | If `stdout + stderr` exceed the cap by at least `minSaving`, the result is replaced by head + marker + tail (`updatedToolOutput` on Claude Code; `decision: block` with the trimmed text as the feedback on Codex, opt-in until verified live). Below the cap, on an image result, on an interrupted Bash result, or on anything trimhook cannot read: no output, the harness proceeds unchanged. A failed call never gets here — see below. |
+| `PostToolUse` | `Bash`, `Read`, `WebFetch` | none — the tool has already run | If `stdout + stderr` exceed the cap by at least `minSaving`, the result is replaced by head + marker + tail (`updatedToolOutput` on Claude Code; on Codex, opt-in until verified live, `continue: false` with the trimmed text as the `stopReason` — then `[stderr]` if any, and the note as its last line — or `decision: block` when `codex.mode` is `block`). Below the cap, on an image result, on an interrupted Bash result, or on anything trimhook cannot read: no output, the harness proceeds unchanged. A failed call never gets here — see below. |
 
 The marker reads, verbatim:
 
@@ -92,6 +92,14 @@ codex plugin add trimhook@trimhook
 trimhook print-hooks > .codex/hooks.json      # or ~/.codex/hooks.json; trust it when Codex asks
 ```
 
+On Codex the replacement is opt-in: `"codex": { "replace": true }` in `~/.trimhook.json`.
+It answers `continue: false` by default. `"mode": "block"` answers `decision: block`
+instead, which Codex 0.155.1 records as a failed tool call — the model reads
+`Script failed` and `Script error:` before the trimmed text (2026-09-23) — so it is there
+to compare against, not to use. Codex can also cut before trimhook does: the model may
+pass `max_output_tokens`, and Codex truncates the output to it before the hook runs (one
+live run handed the hook 504 of 28,893 characters).
+
 Then `trimhook doctor` says which harness it sees, where it writes, and whether the
 harness's own cap sits below trimhook's — in which case the harness cuts first and
 trimhook never sees the rest.
@@ -112,7 +120,7 @@ key is optional:
   "perCommand": { "git log": 4000, "npm test": 16000 },
   "spill": true,
   "spillTtlDays": 7,
-  "codex": { "replace": false },
+  "codex": { "replace": false, "mode": "continue" },
   "collapse": { "enabled": true, "minRun": 3, "strict": true },
   "tools": ["Bash", "Read", "WebFetch"]
 }
@@ -132,7 +140,7 @@ what makes a cut recoverable or what reaches the model on Codex:
 | `cap`, `perCommand`, `minSaving`, `head` | either way — every cut still spills |
 | `collapse.enabled`, `collapse.minRun` | only narrower: `enabled` may turn off, never back on; `minRun` may rise, never fall |
 | `tools` | only a subset of the list above it |
-| `mode`, `spill`, `spillTtlDays`, `codex.replace`, `collapse.strict` | never — set them in `~/.trimhook.json` or the environment |
+| `mode`, `spill`, `spillTtlDays`, `codex.replace`, `codex.mode`, `collapse.strict` | never — set them in `~/.trimhook.json` or the environment |
 
 A key outside its class is dropped, the value from your file or the default stands, and
 `doctor` prints it as `BAD`. `~/.trimhook.json` and the environment keep every key.

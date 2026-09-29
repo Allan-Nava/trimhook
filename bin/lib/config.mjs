@@ -17,7 +17,10 @@ export const DEFAULTS = Object.freeze({
   perCommand: {}, // { "git log": 4000, "npm test": 16000 } — by the command's first word or first two
   spill: true, // write the whole output to a file the model can read
   spillTtlDays: 7, // spill files older than this are pruned
-  codex: { replace: false }, // Codex's result replacement is documented but not yet verified live: opt in
+  // D5: `continue` answers {continue: false, stopReason}; `block` answers decision:
+  // block, which Codex 0.155.1 logs as a failed call ("Script failed …", router
+  // error=1, 2026-09-23) — kept for the TH-9 comparison, never a default.
+  codex: { replace: false, mode: 'continue' }, // replacement is opt-in until TH-9's live run
   // TH-16: a run of identical lines is collapsed to its first line and a count, before
   // the cut, so the budget buys distinct content.
   //
@@ -82,6 +85,7 @@ export const RULES = {
   spill: (v) => typeof v === 'boolean' || 'true|false',
   spillTtlDays: (v) => (num(v) && v >= 0) || 'a number of days ≥ 0',
   'codex.replace': (v) => typeof v === 'boolean' || 'true|false',
+  'codex.mode': (v) => ['continue', 'block'].includes(v) || 'continue|block',
   'collapse.enabled': (v) => typeof v === 'boolean' || 'true|false',
   'collapse.minRun': (v) => (Number.isInteger(v) && v >= 2) || 'an integer ≥ 2',
   'collapse.strict': (v) => typeof v === 'boolean' || 'true|false',
@@ -102,7 +106,7 @@ const set = (o, path, v) => {
 export const REPO_CLASS = Object.freeze({
   cap: 'either', perCommand: 'either', minSaving: 'either', head: 'either',
   'collapse.enabled': 'narrow', 'collapse.minRun': 'narrow', tools: 'narrow',
-  'collapse.strict': 'denied', mode: 'denied', spill: 'denied', spillTtlDays: 'denied', 'codex.replace': 'denied',
+  'collapse.strict': 'denied', mode: 'denied', spill: 'denied', spillTtlDays: 'denied', 'codex.replace': 'denied', 'codex.mode': 'denied',
 })
 const plain = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
 // Delete a dotted key from a plain-object tree; a no-op when it is absent.

@@ -6,6 +6,13 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Added
+- `codex.mode`: `continue` (the default) or `block` — the shape of the Codex replacement
+  once `codex.replace` is on. `continue` answers `{continue: false, stopReason}` with the
+  trimmed text, `[stderr]` if any, and the note as the last line; `block` keeps 0.1.0's
+  `decision: block`, now with the note inside `reason` too, since Codex 0.155.1 drops
+  `systemMessage` and records a block as a failed tool call. Set it in `~/.trimhook.json`
+  or the environment; a repository file may not. `codex.replace` stays off by default
+  until TH-9's live run (TH-1, D5).
 - Failures leave a record. A thrown error is logged as `outcome: "kept"` with
   `error: <code>` — the error's code or name, never its message — and the stderr line
   stays; `trimhook report` counts `spillRead`, `spillFailed` and `error`, and `doctor`

@@ -12,14 +12,14 @@
 
 | Step | Status | Session | Commit | Note |
 |---|---|---|---|---|
-| S1 | ⬜ todo | — | — | spill-read exemption, closes TH-26 |
+| S1 | 🔄 in progress | S1 | — | spill-read exemption, closes TH-26 |
 | S2 | ✅ done | S2 | `04eb280` (#36) | `interrupted: true` falls through; README "What a failure does."; no deviation |
 | S3 | ⬜ todo | — | — | |
 | S4 | ⬜ todo | — | — | |
 | S5 | ✅ done | S5 | `9d4f041` (#37) | `evals/codex-live.md`: protocol, pass rule, empty Runs table, pending verdict; no deviation |
 | S6 | ✅ done | S6 | `d74ad80` (#38) | thrown errors logged `kept` + `error` (code or name only); `report` and `doctor` count flags; no deviation |
-| S7 | ✅ done | S7 | this PR | `REPO_CLASS`: either / narrow / denied per key; breaking for repository files (0.2.0); CHANGELOG conflict with S2 resolved by keeping both, breaking entry first |
-| S8 | ⬜ todo | — | — | unblocked: S2, S5, S6, S7 merged |
+| S7 | ✅ done | S7 | `5bc7bb9` (#39) | `REPO_CLASS`: either / narrow / denied per key; breaking for repository files (0.2.0); CHANGELOG conflict with S2 resolved by keeping both, breaking entry first |
+| S8 | ✅ done | S8 | this PR | Codex replies `{continue: false, stopReason}` by default, `block` behind `codex.mode`; anonymised fixture; see Discoveries |
 | S9 | ⏸️ blocked | — | — | waits on S4, S6 |
 | S10 | ⏸️ blocked | — | — | waits on S3, S9 |
 | S11 | ⏸️ blocked | — | — | waits on S6, S8, S10 |
@@ -37,13 +37,21 @@ parallel, then S8, then S12 and S13 — and the rest after.
 
 ## Where I left off
 
-**Current step:** S8
+**Current step:** S1 (in progress); S12 next
 
-**Next concrete action:** run S8 in a fresh session on a branch from main; then S12 (TH-9 live Codex run) and S13
+**Next concrete action:** once S1 is merged (S12's pre-check P3 needs `# todo 0`), run S12 — the live Codex protocol in `evals/codex-live.md`
 
 ---
 
 ## Discoveries
+
+- **S8, 2026-09-29 — the plan's privacy grep matches its own fixture.** The staged-diff
+  grep (`/Users/|/home/|/var/folders/|/tmp/|rollout-|<uuid shape>`) matches four lines of
+  `test/fixtures/codex-post-tool-use.json`: `session_id`, `turn_id`, `transcript_path`,
+  `cwd`. They are the neutral placeholders the plan prescribes (`/home/user`, all-zero
+  UUIDs), so the commit stands. A transcription slip in `04-plan.md`, not an upstream
+  error: the grep is meant for the human steps' records (S12, S14); later steps run it
+  with `':!test/fixtures/'` as a pathspec.
 
 ---
 

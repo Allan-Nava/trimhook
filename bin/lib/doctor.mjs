@@ -28,7 +28,7 @@ export function doctor({ cwd = process.cwd(), env = process.env } = {}) {
   ok(existsSync(userPath) ? `user config: ${userPath}` : `user config: none (${userPath})`)
   ok(existsSync(path) ? `repository config: ${path}` : `repository config: none (${path})`)
   for (const p of problems) bad(`config: ${p}`)
-  ok(`mode ${cfg.mode} · cap ${cfg.cap} · head ${cfg.head} · minSaving ${cfg.minSaving} · spill ${cfg.spill} (${cfg.spillTtlDays} days) · codex.replace ${cfg.codex.replace}`)
+  ok(`mode ${cfg.mode} · cap ${cfg.cap} · head ${cfg.head} · minSaving ${cfg.minSaving} · spill ${cfg.spill} (${cfg.spillTtlDays} days) · codex.replace ${cfg.codex.replace} · codex.mode ${cfg.codex.mode}`)
   ok(`tools ${cfg.tools.join(', ')}`)
   ok(`collapse ${cfg.collapse.enabled ? `on, ${cfg.collapse.strict ? 'strict' : 'masked'}, runs of ${cfg.collapse.minRun}+` : 'off'}`)
   if (Object.keys(cfg.perCommand).length) ok(`per-command caps: ${Object.entries(cfg.perCommand).map(([c, n]) => `${c}=${n}`).join(', ')}`)
@@ -36,6 +36,9 @@ export function doctor({ cwd = process.cwd(), env = process.env } = {}) {
   const harnessCap = Number(env.BASH_MAX_OUTPUT_LENGTH)
   if (harnessCap && harnessCap < cfg.cap) warn(`BASH_MAX_OUTPUT_LENGTH=${harnessCap} is below trimhook's cap ${cfg.cap}: Claude Code cuts first, flat, and trimhook never sees the rest`)
   if (harness === 'codex' && !cfg.codex.replace) warn('codex.replace is off: on Codex trimhook measures (outcome would-trim) and does not replace the result — see README')
+  // D5: a reply Codex records as a failed tool call is a choice worth seeing wherever
+  // doctor runs — from a terminal it rarely detects Codex.
+  if (cfg.codex.replace && cfg.codex.mode === 'block') warn('codex.mode block: Codex records the replacement as a failed tool call — the model reads "Script failed" and "Script error:" before the trimmed text; codex.mode continue is the default — see README')
   if (cfg.mode === 'audit') warn('mode audit: results are measured, none is replaced')
   // D7: an install that fails saves nothing and says so only here and in `report`.
   const recs = readRecords(dir)

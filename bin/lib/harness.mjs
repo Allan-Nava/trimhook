@@ -71,13 +71,18 @@ export function readResponse(r) {
 }
 
 // The JSON a handler prints to replace the result. `null` means fall through.
-export function replacementOutput(harness, original, stdout, stderr, note) {
+export function replacementOutput(harness, original, stdout, stderr, note, codexMode = 'continue') {
   if (harness === 'codex') {
-    // learn.chatgpt.com/docs/hooks (2026-09-23): on PostToolUse, `decision: "block"`
-    // "replaces the tool result with that feedback and continues the model from the
-    // hook-provided message". The feedback is the trimmed output itself.
-    const text = stderr ? `${stdout}\n[stderr]\n${stderr}` : stdout
-    return { decision: 'block', reason: text, systemMessage: note }
+    // D5, measured on Codex 0.155.1 (2026-09-23): the hook's reply replaces the tool
+    // output the model reads, and `systemMessage` never reaches it — so the note rides
+    // inside the text, as its last line. `continue: false` is documented to use the
+    // feedback as the model-visible result without rejecting the tool call; `block` is
+    // logged as a failed call ("Script failed" + "Script error: " + reason), which is why
+    // it is never the default (TH-9 decides whether `continue` is).
+    const body = stderr ? `${stdout}\n[stderr]\n${stderr}` : stdout
+    const text = `${body}${body.endsWith('\n') ? '' : '\n'}${note}`
+    if (codexMode === 'block') return { decision: 'block', reason: text, systemMessage: note }
+    return { continue: false, stopReason: text }
   }
   const rest = original?.rest ?? {}
   const updated = (() => {
