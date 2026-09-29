@@ -60,6 +60,9 @@ CONTRIBUTING.md        local loop, benchmark protocol, release runbook
    when the cut is taken, so a result the model saw in full leaves no copy on disk.
    And a read of a spill file — a `Read` under `<data>/spill/`, or a Bash command naming
    it — comes back whole, never cut again (TH-26).
+   So does a `Read` of an instruction file — `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`,
+   `GEMINI.md`, `SKILL.md`, or anything under `.claude/{commands,agents,skills}/` — logged
+   `kept, instructions: true` (TH-29, `readsInstructions` in `bin/lib/store.mjs`).
 4. **Sizes only in the log.** The audit log never carries output text; the command is
    reduced to its first word or two. The spill files hold the output and are 0600.
 5. **Under the harness's ceiling.** Claude Code's own limit — `bashOutputMaxChars` from

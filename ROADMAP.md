@@ -4,7 +4,7 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**34 items · 28 shipped · 6 open · 4 milestones.**
+**34 items · 30 shipped · 4 open · 4 milestones.**
 
 ## At a glance
 
@@ -13,7 +13,7 @@
 | **v0.1.0 — One cut, one number** | now | `#########.` 91% | 1 | 10 |
 | **v0.2.0 — Beyond Bash** | next | `#########.` 91% | 1 | 10 |
 | **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 6 |
-| **v0.4.0 — What headroom measured** | later | `###.......` 33% | 4 | 2 |
+| **v0.4.0 — What headroom measured** | later | `#######...` 67% | 2 | 4 |
 
 ## v0.1.0 — One cut, one number
 
@@ -55,8 +55,8 @@
 ## v0.4.0 — What headroom measured
 
 - [ ] **TH-28** — What a cut Read costs an Edit · high · M · benchmark, hook
-- [ ] **TH-29** — Instruction files are never cut · med · S · hook
-- [ ] **TH-30** — The cut is byte-deterministic, and a test says so · med · S · tests
+- [x] **TH-29** — Instruction files are never cut · med · S · hook · `main`
+- [x] **TH-30** — The cut is byte-deterministic, and a test says so · med · S · tests · `main`
 - [ ] **TH-31** — A holdout, so the cost is measured rather than estimated · med · M · benchmark, hook
 - [x] **TH-32** — JSON-aware cuts, from headroom's SmartCrusher · low · M · benchmark · `dropped`
 - [x] **TH-33** — Cite headroom as prior art for D9 · low · S · docs · `main`

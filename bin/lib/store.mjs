@@ -3,7 +3,8 @@
 // files, which do hold the output the model did not see. Every write is best-effort:
 // a full disk must never change what the model reads.
 import { appendFileSync, chmodSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve, sep } from 'node:path'
+import { createHash } from 'node:crypto'
+import { basename, dirname, join, resolve, sep } from 'node:path'
 
 const safe = (fn) => {
   try {
@@ -39,8 +40,11 @@ const slug = (s) => String(s || 'no-session').replace(/[^\w-]/g, '_').slice(0, 8
 // Where a result's whole output goes. Deterministic from the session and the tool-use
 // id, so the marker can name the file before it exists — which is what lets the handler
 // decide first and write only when the cut is taken (TH-24).
-export function spillPath(dir, sessionId, toolUseId) {
-  return join(dir, 'spill', slug(sessionId), `${slug(toolUseId || Date.now())}.txt`)
+export function spillPath(dir, sessionId, toolUseId, content) {
+  // TH-30: with no tool-use id the name comes from the content, never the clock, so the
+  // marker naming the file is the same bytes every time the same result comes through.
+  const id = toolUseId || (content === undefined ? String(Date.now()) : `c-${createHash('sha256').update(content).digest('hex').slice(0, 16)}`)
+  return join(dir, 'spill', slug(sessionId), `${slug(id)}.txt`)
 }
 
 // TH-26 (D9): does this tool use read a spill file back? Such a read comes back whole —
@@ -65,6 +69,21 @@ export function readsSpill({ dir, home, cwd, tool, input }) {
   return false
 }
 
+// TH-29: the files an agent reads as instructions. A cut drops the middle whole, and in
+// a file of rules the rules in the middle are gone; headroom (0.39.1) excludes Claude
+// Code's Skill tool for the lossy version of the same reason, having measured only 73.5%
+// of negations surviving its compressor on 40 SKILL.md bodies. Read only, and exact names
+// only: a look-alike is cut like any file, and so is a Bash `cat` of one.
+const INSTRUCTION_NAMES = new Set(['CLAUDE.md', 'CLAUDE.local.md', 'AGENTS.md', 'GEMINI.md', 'SKILL.md'])
+const INSTRUCTION_DIRS = ['commands', 'agents', 'skills'].map((d) => `${sep}.claude${sep}${d}${sep}`)
+export function readsInstructions({ cwd, tool, input }) {
+  if (tool !== 'Read') return false
+  const p = input?.file_path
+  if (typeof p !== 'string' || !p) return false
+  const abs = resolve(typeof cwd === 'string' ? cwd : sep, p)
+  return INSTRUCTION_NAMES.has(basename(abs)) || INSTRUCTION_DIRS.some((d) => abs.includes(d))
+}
+
 // The whole output, for the model to `Read` if the head and tail were not enough.
 // Owner-only permissions: a command's output can hold whatever the command printed.
 // Returns the path written, or null when the write failed.
@@ -79,7 +98,7 @@ export function writeSpill(p, stdout, stderr) {
 }
 
 export function spill(dir, sessionId, toolUseId, stdout, stderr) {
-  return writeSpill(spillPath(dir, sessionId, toolUseId), stdout, stderr)
+  return writeSpill(spillPath(dir, sessionId, toolUseId, `${stdout}\0${stderr}`), stdout, stderr)
 }
 
 export function pruneSpill(dir, ttlMs, now = Date.now()) {

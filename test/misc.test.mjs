@@ -260,6 +260,12 @@ test('report sums sizes and ranks commands', () => {
   assert.equal(render(summarize([])), 'no results logged yet')
 })
 
+test('report: instruction files left whole are counted as a flag (TH-29)', () => {
+  const s = summarize([{ outcome: 'kept', before: 20000, after: 20000, tool: 'Read', instructions: true }])
+  assert.equal(s.flags.instructions, 1)
+  assert.match(render(s), /flags on kept results: instructions 1/)
+})
+
 test('report: an unconfirmed Codex result is counted apart and never as saved (TH-34)', () => {
   const s = summarize([
     { outcome: 'trimmed', before: 10000, after: 8000, command: 'npm test', tool: 'Bash' },
@@ -285,7 +291,7 @@ test('report: flag counts for spillRead, spillFailed and error', () => {
     { outcome: 'kept', error: 'ENOSPC' },
     { outcome: 'trimmed', before: 30000, after: 8000, command: 'npm test' },
   ])
-  assert.deepEqual(s.flags, { spillRead: 1, spillFailed: 1, error: 2 })
+  assert.deepEqual(s.flags, { spillRead: 1, spillFailed: 1, error: 2, instructions: 0 })
   assert.equal(s.saved, 22000)
   assert.match(render(s), /^flags on kept results: spillRead 1 · spillFailed 1 · error 2$/m)
   assert.doesNotMatch(render(summarize([{ outcome: 'trimmed', before: 30000, after: 8000 }])), /flags on kept results/)

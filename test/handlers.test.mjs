@@ -1,7 +1,9 @@
+import { spawnSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { commandPrefix, postToolUse } from '../bin/lib/handlers.mjs'
 import { env, input, lines, tmp } from './helpers.mjs'
 
@@ -307,4 +309,88 @@ test('TH-26: the exemption holds in audit mode and on Codex', async () => {
   const c = log(d2).at(-1)
   assert.equal(c.spillRead, true)
   assert.equal(c.harness, 'codex')
+})
+
+// TH-29: a Read of an instruction file is never cut. A cut drops the middle whole, and in
+// a file of rules the rules in the middle are simply gone; headroom excludes Claude Code's
+// Skill tool for the lossy version of the same reason.
+const readOf = (file_path, content, extra = {}) => input('', { tool_name: 'Read', tool_input: { file_path }, tool_response: { type: 'text', file: { filePath: file_path, content, numLines: 1, startLine: 1, totalLines: 1 } }, ...extra })
+
+test('TH-29: a Read of CLAUDE.md, AGENTS.md, GEMINI.md, SKILL.md or CLAUDE.local.md comes back whole', async () => {
+  const d = tmp()
+  const names = ['/repo/CLAUDE.md', '/repo/CLAUDE.local.md', '/repo/AGENTS.md', '/repo/pkg/GEMINI.md', '/home/u/.claude/skills/deploy/SKILL.md']
+  for (const p of names) assert.equal(await postToolUse(readOf(p, lines(5000)), { env: env(d) }), null, p)
+  const recs = log(d)
+  assert.equal(recs.length, names.length)
+  for (const r of recs) {
+    assert.equal(r.outcome, 'kept')
+    assert.equal(r.instructions, true)
+    assert.equal(r.after, r.before)
+  }
+})
+
+test('TH-29: anything under .claude/commands, .claude/agents or .claude/skills comes back whole, relative paths included', async () => {
+  const d = tmp()
+  assert.equal(await postToolUse(readOf('.claude/commands/release.md', lines(5000), { cwd: '/repo' }), { env: env(d) }), null)
+  assert.equal(await postToolUse(readOf('/repo/.claude/agents/reviewer.md', lines(5000)), { env: env(d) }), null)
+  assert.equal(await postToolUse(readOf('/repo/.claude/skills/x/references/long.md', lines(5000)), { env: env(d) }), null)
+  assert.deepEqual(log(d).map((r) => r.instructions), [true, true, true])
+})
+
+test('TH-29: only those names and folders — look-alikes, other tools and Bash are still cut', async () => {
+  const d = tmp()
+  for (const p of ['/repo/docs/claude.md', '/repo/CLAUDE.md.bak', '/repo/NOTCLAUDE.md', '/repo/.claude/settings-notes.md', '/repo/src/skills/SKILL.md.txt']) {
+    const out = await postToolUse(readOf(p, lines(5000)), { env: env(d) })
+    assert.ok(out, `${p} should be cut`)
+  }
+  const bash = await postToolUse(input(lines(5000), { tool_input: { command: 'cat CLAUDE.md' } }), { env: env(d) })
+  assert.ok(bash, 'TH-29 covers Read only; a Bash cat of an instruction file is cut as before')
+  assert.equal(log(d).filter((r) => r.instructions).length, 0)
+})
+
+// TH-30: the cut is a pure function of its input — the same result gives the same bytes,
+// marker and spill path included. The README's cache-safety claim rests on it.
+test('TH-30: the same input gives identical output — Bash, collapsed runs, Read, WebFetch, Codex', async () => {
+  const d = tmp()
+  const runs = lines(3000) + '\n' + 'same line\n'.repeat(400) + lines(3000)
+  const cases = [
+    input(lines(5000)),
+    input(runs),
+    input('', { tool_name: 'Read', tool_input: { file_path: '/a/big.ts' }, tool_response: { type: 'text', file: { filePath: '/a/big.ts', content: lines(5000), numLines: 5000, startLine: 1, totalLines: 5000 } } }),
+    input('', { tool_name: 'WebFetch', tool_input: { url: 'https://e.x/a' }, tool_response: { bytes: 1, code: 200, codeText: 'OK', result: lines(5000), durationMs: 1, url: 'https://e.x/a' } }),
+  ]
+  for (const c of cases) {
+    const a = JSON.stringify(await postToolUse(c, { env: env(d) }))
+    const b = JSON.stringify(await postToolUse(c, { env: env(d) }))
+    assert.notEqual(a, 'null')
+    assert.equal(a, b)
+  }
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ cap: 8000, codex: { replace: true } }))
+  const codex = { TRIMHOOK_DATA: d, PLUGIN_ROOT: '/codex-plugin', TRIMHOOK_USER_CONFIG: join(d, 'user.json') }
+  const ci = input(lines(5000), { turn_id: 't1', tool_response: lines(5000) })
+  delete ci.hook_event_name
+  assert.equal(JSON.stringify(await postToolUse(ci, { env: codex })), JSON.stringify(await postToolUse(ci, { env: codex })))
+})
+
+test('TH-30: without a tool_use_id the spill is named from the content, so the marker is still stable', async () => {
+  const d = tmp()
+  const noId = input(lines(5000)); delete noId.tool_use_id
+  const a = await postToolUse(noId, { env: env(d), now: () => 1 })
+  const b = await postToolUse(noId, { env: env(d), now: () => 2 })
+  assert.equal(a.hookSpecificOutput.updatedToolOutput.stdout, b.hookSpecificOutput.updatedToolOutput.stdout)
+  const other = input(lines(5001)); delete other.tool_use_id
+  const c = await postToolUse(other, { env: env(d) })
+  const path = (o) => o.hookSpecificOutput.updatedToolOutput.stdout.match(/Full output: (\S+)\]/)[1]
+  assert.notEqual(path(a), path(c), 'different content, different file')
+})
+
+test('TH-30: two processes print the same bytes for the same event', () => {
+  const d = tmp()
+  const event = JSON.stringify(input(lines(5000)))
+  const cli = join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'trimhook.mjs')
+  const run = () => spawnSync(process.execPath, [cli, 'post-tool-use'], { input: event, env: { PATH: process.env.PATH, ...env(d) }, encoding: 'utf8' })
+  const one = run(), two = run()
+  assert.equal(one.status, 0)
+  assert.ok(one.stdout.length > 1000)
+  assert.equal(one.stdout, two.stdout)
 })
