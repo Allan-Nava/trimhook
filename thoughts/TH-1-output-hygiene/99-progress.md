@@ -20,9 +20,9 @@
 | S6 | ✅ done | S6 | `d74ad80` (#38) | thrown errors logged `kept` + `error` (code or name only); `report` and `doctor` count flags; no deviation |
 | S7 | ✅ done | S7 | `5bc7bb9` (#39) | `REPO_CLASS`: either / narrow / denied per key; breaking for repository files (0.2.0); CHANGELOG conflict with S2 resolved by keeping both, breaking entry first |
 | S8 | ✅ done | S8 | `49b1eaa` (#40) | Codex replies `{continue: false, stopReason}` by default, `block` behind `codex.mode`; anonymised fixture; see Discoveries |
-| S9 | ✅ done | S9 | this PR | `report --cap N`; README "How the week decides the default cap" guarded by `check`; sweep table from the committed JSON; TH-10 no longer gates 0.2.0 (A1); no deviation |
-| S10 | ⬜ todo | — | — | unblocked: S3, S9 merged |
-| S11 | ⏸️ blocked | — | — | waits on S6, S8, S10 |
+| S9 | ✅ done | S9 | `2a27bcb` (#47) | `report --cap N`; README "How the week decides the default cap" guarded by `check`; sweep table from the committed JSON; TH-10 no longer gates 0.2.0 (A1); no deviation |
+| S10 | ✅ done | S10 | this PR | README bounds (stderr floor 20%, overflow, 200-character floor, 5 s timeout, 75-83 ms p50, 156 ms worst) guarded by `check`; no deviation |
+| S11 | ⬜ todo | — | — | unblocked: S6, S8, S10 merged |
 | S12 | ✅ done | orchestrator | `0975840` (#42) | TH-9 fail — `evals/codex-live.md` |
 | S13 | ✅ done | S13 | `1b9d8ec` (#44) | fail branch: default stays off; README/CLAUDE.md/CHANGELOG say what 0.155.1 did; TH-9 ticked; see Deviations |
 | S14 | ⏸️ blocked | — | — | TH-10 live week; waits on S1, S4, S6, S7, S9 |
@@ -37,9 +37,9 @@ parallel, then S8, then S12 and S13 — and the rest after.
 
 ## Where I left off
 
-**Current step:** S10
+**Current step:** S11
 
-**Next concrete action:** run S10 (README numbers and bounds guarded by check) in a fresh session; then S11
+**Next concrete action:** run S11 (doctor reads bashOutputMaxChars) in a fresh session — the last agent step before S14
 
 ---
 
