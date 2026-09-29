@@ -71,11 +71,11 @@ count of spill files the model actually went back to read.
   <!-- th: prio=med size=M labels=project,release ver=main -->
 - [x] **TH-8 — Backlog as the single source of truth**: this file, the generated
   roadmap, the one-way issue sync, the planner test. <!-- th: prio=low size=S labels=project ver=main -->
-- [ ] **TH-9 — Verify the Codex replacement live**: `decision: block` with the trimmed
+- [x] **TH-9 — Verify the Codex replacement live**: `decision: block` with the trimmed
   text is documented to replace the result; observe on Codex 0.155+ what the model sees,
   whether it reads as an error, and whether `continue: false` reads better; then flip
   `codex.replace` to default on or record why not. The protocol and its pass rule are
-  in `evals/codex-live.md` (TH-1, D5): three runs per `codex.mode`, judged on `Bash`. <!-- th: prio=high size=S labels=hook,tests -->
+  in `evals/codex-live.md` (TH-1, D5): three runs per `codex.mode`, judged on `Bash`. Done 2026-09-29: neither shape passed on Codex 0.155.1 (`evals/codex-live.md`); `codex.replace` stays opt-in, and the README says what each did. <!-- th: prio=high size=S labels=hook,tests ver=main -->
 - [ ] **TH-10 — Live measurement, one week**: `trimhook report` on real sessions, plus
   the count of `Read` calls on spill files from the transcripts; both numbers into the
   README beside the transcript table, and the default cap decided from them.
