@@ -22,12 +22,16 @@ Two measurements, both without a key and without a network:
    table shows. The transcripts hold what the harness gave the model after its own flat
    cut, so the saving is what trimhook adds on top of `BASH_MAX_OUTPUT_LENGTH`, not
    instead of it. Commit the JSON with the table; the table carries its date.
-2. **Live** — install the checkout, work for a week, then `trimhook report`: results,
-   `trimmed` count, characters saved, top commands. The second number that matters is what
+2. **Live** — install the checkout, set `~/.trimhook.json` to
+   `{"cap": 4000, "tools": ["Bash", "Read", "WebFetch"]}`, work for a week, then
+   `trimhook report`, `trimhook report --cap 8000` and `trimhook report --cap 12000`:
+   results, `trimmed` count, characters saved, top commands, at the cap the week ran at
+   and at the two rungs above it. The second number that matters is what
    the model did after a cut: `node evals/reads.mjs` counts, per tool and on both
    harnesses, the reads of a spill file and the same call made again within the next 12
    tool uses, and prints the rule's verdict line for a human to confirm. A cap that is
-   never followed by a read can drop; one that is read often is too low.
+   never followed by a read can drop; one that is read often is too low. The README's
+   "How the week decides the default cap" turns the two into a default.
 
 3. **Judgement** — `node evals/sample-runs.mjs [--n 40] [--seed 1]` prints a bounded,
    seeded sample of the runs a masked collapse would fold, for a human to classify as

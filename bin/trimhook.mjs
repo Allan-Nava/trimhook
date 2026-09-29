@@ -4,7 +4,7 @@
 //   trimhook check            validate the manifests, hooks files and this package
 //   trimhook post-tool-use    PostToolUse handler: head + tail + a pointer to the whole output (stdin JSON)
 //   trimhook doctor           harness, data dir, config, the harness's own cap
-//   trimhook report           results, characters saved, top commands — from the local log
+//   trimhook report [--cap N] results, characters saved, top commands — from the local log; --cap N recomputes them at cap N
 //   trimhook print-hooks      a .codex/hooks.json for this checkout, absolute paths
 //   trimhook help
 //
@@ -91,6 +91,28 @@ function checkHooksFile(path, rootVar, fail) {
   return hooks
 }
 
+// The README text under one heading, up to the next ## or ### heading; null when the
+// heading is absent. A term guarded inside its own section cannot be satisfied by the
+// same number written somewhere else.
+function readmeSection(text, heading) {
+  const start = text.indexOf(`\n${heading}\n`)
+  if (start === -1) return null
+  const body = text.slice(start + heading.length + 2)
+  const end = body.search(/^#{2,3} /m)
+  return end < 0 ? body : body.slice(0, end)
+}
+// D3, D8: the rule that turns the TH-10 week into a default cap, one regex per term.
+const CAP_RULE_HEADING = '### How the week decides the default cap'
+const CAP_RULE = [
+  [/at\s+least\s+20\s+cuts/, 'floor (at least 20 cuts per tool)'],
+  [/12\s+tool\s+uses/, 'window (the next 12 tool uses)'],
+  [/at\s+or\s+under\s+10%/, 'threshold (at or under 10%)'],
+  [/9,500/, 'subset (a post-collapse size of 9,500 or more)'],
+  [/4,000\s+→\s+8,000\s+→\s+12,000/, 'ladder (4,000 → 8,000 → 12,000)'],
+  [/pooled\s+rate/, 'pooled rate (reported, does not vote)'],
+  [/upper\s+bound/, 'weak spot (an upper bound for 8,000)'],
+]
+
 function check() {
   const errors = []
   const fail = (m) => errors.push(m)
@@ -118,6 +140,9 @@ function check() {
     if (!/nothing leaves the machine/i.test(readme)) fail('README.md must state that nothing leaves the machine')
     if (!/fail-open|fails open/i.test(readme)) fail('README.md must state the fail-open rule')
     if (!/BASH_MAX_OUTPUT_LENGTH/.test(readme)) fail("README.md must name the harness's own cap (BASH_MAX_OUTPUT_LENGTH) and how trimhook relates to it")
+    const rule = readmeSection(readme, CAP_RULE_HEADING)
+    if (rule === null) fail(`README.md must state the default-cap rule under "${CAP_RULE_HEADING}" (TH-10)`)
+    else for (const [re, what] of CAP_RULE) if (!re.test(rule)) fail(`README.md must state the default-cap rule's ${what} under "${CAP_RULE_HEADING}"`)
   }
   for (const m of ['config.mjs', 'harness.mjs', 'trim.mjs', 'store.mjs', 'handlers.mjs', 'report.mjs', 'doctor.mjs']) if (!existsSync(join(ROOT, 'bin', 'lib', m))) fail(`bin/lib/${m} is missing`)
   // The site's og:image named this file for weeks before it existed, and a card that
@@ -165,7 +190,22 @@ switch (cmd) {
   case 'report': {
     const { report } = await import('./lib/report.mjs')
     const { dataDir } = await import('./lib/harness.mjs')
-    console.log(report(dataDir()))
+    const { RULES } = await import('./lib/config.mjs')
+    // `--cap N` or `--cap=N`; the same bounds as the config key, so a typo is an error
+    // rather than a sweep at a cap nobody could set.
+    const args = process.argv.slice(3)
+    const i = args.findIndex((a) => a === '--cap' || a.startsWith('--cap='))
+    let cap
+    if (i >= 0) {
+      const raw = args[i].startsWith('--cap=') ? args[i].slice(6) : args[i + 1]
+      cap = Number(raw)
+      const ok = RULES.cap(cap)
+      if (ok !== true) {
+        console.error(`trimhook report: --cap must be ${ok}, got ${JSON.stringify(raw ?? null)}`)
+        process.exit(2)
+      }
+    }
+    console.log(report(dataDir(), { cap }))
     break
   }
   case 'print-hooks': {

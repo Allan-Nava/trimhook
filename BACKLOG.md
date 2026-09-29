@@ -76,10 +76,12 @@ count of spill files the model actually went back to read.
   whether it reads as an error, and whether `continue: false` reads better; then flip
   `codex.replace` to default on or record why not. The protocol and its pass rule are
   in `evals/codex-live.md` (TH-1, D5): three runs per `codex.mode`, judged on `Bash`. Done 2026-09-29: neither shape passed on Codex 0.155.1 (`evals/codex-live.md`); `codex.replace` stays opt-in, and the README says what each did. <!-- th: prio=high size=S labels=hook,tests ver=main -->
-- [ ] **TH-10 — Live measurement, one week**: `trimhook report` on real sessions, plus
-  the count of `Read` calls on spill files from the transcripts; both numbers into the
-  README beside the transcript table, and the default cap decided from them.
-  **Gates the release.** <!-- th: prio=high size=M labels=benchmark -->
+- [ ] **TH-10 — Live measurement, one week**: a week at `cap: 4000` with all three tools;
+  `trimhook report` (and `--cap 8000`, `--cap 12000`) for the saving, `node evals/reads.mjs`
+  for the spill reads and re-runs per tool; both numbers into the README beside the
+  transcript table, and the default cap decided by the rule the README states before the
+  week (per tool, a 20-cut floor, at or under 10% over all cuts and over the 9,500 subset,
+  4,000 → 8,000 → 12,000). Does not gate 0.2.0 (TH-1). <!-- th: prio=high size=M labels=benchmark -->
 - [x] **TH-11 — First release 0.1.0**: bootstrap publish by hand, trusted publisher, tag
   — after TH-10. Published 2026-09-23 ahead of TH-10, deliberately: the README states
   that the numbers are transcript-only and the default cap reasoned rather than

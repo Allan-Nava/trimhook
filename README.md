@@ -171,25 +171,60 @@ their numbers. See the measurement below before turning it on.
 
 ## What the transcripts say
 
-From 142 local Claude Code sessions and 8 Codex sessions — 28,545 tool results,
-28.5 M characters — measured on this machine and sent nowhere (`node evals/local.mjs`,
-2026-09-23). The transcripts hold what the harness gave the model, after its own flat
-cut, so this is what trimhook adds on top:
+From 142 local Claude Code sessions and 8 Codex sessions — 28,800 shell results,
+28.8 M characters — measured on this machine and sent nowhere (`node evals/local.mjs`,
+2026-09-23; the run is committed as `evals/results/2026-09-23-local.json`, the one source
+this table and the design cite). The transcripts hold what the harness gave the model,
+after its own flat cut, so this is what trimhook adds on top:
 
 | Cap | Results trimmed | Characters saved | Share of all result characters |
 |---:|---:|---:|---:|
-| 4,000 | 802 of 28,545 | 4,651,331 (≈ 1.16 M tokens) | 16% |
-| **8,000** (default) | 288 | 1,951,109 (≈ 488 k tokens) | 7% |
-| 12,000 | 133 | 951,634 | 3% |
-| 16,000 | 66 | 465,656 | 2% |
+| 4,000 | 807 of 28,800 | 4,678,275 (≈ 1.17 M tokens) | 16% |
+| **8,000** (default) | 289 | 1,960,876 (≈ 490 k tokens) | 7% |
+| 12,000 | 134 | 957,401 | 3% |
+| 16,000 | 67 | 467,423 | 2% |
 
-One result in a hundred is over 8,000 characters, and those hold 18% of every character
-the model read from a shell. Trimming them to 8,000 recovers 7%; halving the cap recovers
-16%, at the price of hiding more middles. `cat`, `sed`, `echo` and `for` loops lead the
-list of what gets cut — whole-file reads and hand-rolled loops, not test runs. The right
-default cap is the open question the design phase carries (`thoughts/`), and the live
-measurement (TH-10) is what settles it: `trimhook report` on a week of real work, plus a
-count of how often the model went and read a spill file.
+One result in a hundred is over 8,000 characters (289 of 28,800). Trimming them to 8,000
+recovers 7%; halving the cap recovers 16%, at the price of hiding more middles. `cat`,
+`sed`, `echo` and `for` loops lead the list of what gets cut — whole-file reads and
+hand-rolled loops, not test runs. The sweep is a benchmark, not a replay: each result
+stands in as one synthetic stream of its size with no line to snap to, so its after is the
+cap to the character, where a real cut can land a little short of it (see
+[What it does, exactly](#what-it-does-exactly)). The sweep is shell output only; the live
+week cuts `Read` and `WebFetch` too, and it decides the default under the rule below.
+
+### How the week decides the default cap
+
+The default cap stays 8,000 in this release. The week that settles it (TH-10) runs with
+`~/.trimhook.json` holding `cap: 4000` and all three tools, and this rule, written before
+the week, turns its numbers into a default:
+
+- **Per tool.** For each tool with at least 20 cuts in the week, its re-read rate is its
+  spill reads plus its re-runs within the next 12 tool uses, over its cuts, as
+  `node evals/reads.mjs` counts them. A tool with fewer than 20 cuts is reported as
+  unmeasured and does not vote.
+- **Two rates per tool:** over all its cuts, and over the cuts 8,000 would also have made
+  — a post-collapse size of 9,500 or more, 8,000 plus `minSaving`. A tool with no cut
+  that large passes the second.
+- **The ladder, 4,000 → 8,000 → 12,000.** The default becomes 4,000 if every voting tool
+  is at or under 10% on both rates; else 8,000 if every voting tool is at or under 10% on
+  the second; else 12,000, and this README says the week rejected both.
+- **The pooled rate is reported and does not vote:** Bash's volume would decide for
+  tools it does not represent.
+- **The weak spot.** A re-read at 4,000 of a result of 9,500 or more is an upper bound
+  for its re-read at 8,000, which shows more of the head and the tail — so the rule can
+  reject 8,000 unfairly, never accept it unfairly.
+
+Why 10%: a re-read costs one `Read` of the spill, so even half the cuts read back would
+still save characters; but a re-read is the only visible sign of a middle the model
+needed, so the bar sits far below break-even. Twenty cuts is the fewest at which one
+re-read moves a rate by five points. `node evals/reads.mjs` prints the verdict line, and
+the maintainer checks its arithmetic before the default changes.
+
+`trimhook report --cap N` gives the saving side: the week's logged sizes recomputed at
+cap N, one cap for every result (`perCommand` ignored), the logged collapse replayed,
+a synthetic body per result as the sweep above. A result whose collapse was never
+logged is counted as approximate, and the rule does not use these figures.
 
 ### It is not only Bash
 
