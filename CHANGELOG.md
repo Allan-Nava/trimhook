@@ -13,8 +13,9 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 - `check` refuses a private IPv4 address, a vendor-prefixed key, an email address and the
   home directory of whoever runs it. Project-specific names — a client, a private
   repository, an internal host — come from a file named by `TRIMHOOK_PRIVATE_NAMES`, kept
-  outside this repository; a finding names the file and the kind, never the match
-  (TH-37).
+  outside this repository; a finding names the file and the kind, never the match. The
+  rules live in `bin/lib/private.mjs`, and a `TRIMHOOK_PRIVATE_NAMES` that is missing or
+  empty fails rather than checking nothing quietly (TH-37).
 
 ### Changed
 - The GitHub release notes open with the version's CHANGELOG section, above the install

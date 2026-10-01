@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// trimhook:allow-private-shapes — this file quotes the patterns it forbids.
 // trimhook — tool output trimmed at the source, for Claude Code and Codex CLI hooks.
 //
 //   trimhook check            validate the manifests, hooks files and this package
@@ -72,30 +71,8 @@ async function handler() {
   process.exit(0)
 }
 
-// TH-37: this repository is public, and most of what it publishes is generated — an
-// eval run, a committed scorecard, a commit message quoting a sample. Each of those
-// carries whatever the tool read, which here is the author's own transcripts.
-//
-// The names worth forbidding — a client, a private repository, an internal host — cannot
-// be listed here: a list of secrets in a public file publishes them. So this guard knows
-// two things that need no list, and takes a third from outside:
-//
-//   shapes    a private IPv4 address, a key with a vendor's prefix, an email address.
-//             Generic, safe to publish, and none of them has a reason to be in this tree.
-//   this host the home directory of whoever runs `check`, read at runtime. On this
-//             machine that catches a pasted path; in CI it is /home/runner and matches
-//             nothing, which is honest — the guard is for the machine with the material.
-//   a list    TRIMHOOK_PRIVATE_NAMES, a file of one forbidden substring per line, kept
-//             outside the repository. Without it the names a shape cannot see get past.
-const SHAPES = [
-  [/(?:\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}|\b192\.168\.\d{1,3}\.\d{1,3}|\b172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b/, 'a private IPv4 address'],
-  [/AKIA[0-9A-Z]{16}/, 'an AWS access key id'],
-  [/gh[posu]_[A-Za-z0-9]{30,}/, 'a GitHub token'],
-  [/sk-[A-Za-z0-9_-]{24,}/, 'an API key'],
-  [/xox[baprs]-[A-Za-z0-9-]{12,}/, 'a Slack token'],
-  [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, 'a private key'],
-  [/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}\b/, 'an email address'],
-]
+// The walker stays here because it needs this file's ROOT; the rules are pure and live
+// in bin/lib/private.mjs, which is also the one file allowed to quote the shapes.
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist'])
 const SKIP_EXT = /\.(?:png|jpg|jpeg|gif|ico|webm|mp4|woff2?|tgz|zip|pdf)$/i
 
@@ -109,37 +86,14 @@ function* textFiles(dir) {
   }
 }
 
-export function privateStringRules(env = process.env, home = homedir()) {
-  const rules = SHAPES.map(([re, what]) => ({ re, what }))
-  // A home of "/" or "/root" would match half the tree; a real one is deeper.
-  if (home && home.split('/').filter(Boolean).length >= 2) {
-    rules.push({ re: new RegExp(home.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), what: "this machine's home directory" })
-  }
-  const listPath = env.TRIMHOOK_PRIVATE_NAMES
-  if (listPath) {
-    let lines = []
-    try {
-      lines = readFileSync(listPath, 'utf8').split('\n')
-    } catch {
-      lines = []
-    }
-    for (const raw of lines) {
-      const word = raw.trim()
-      if (!word || word.startsWith('#')) continue
-      rules.push({ re: new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), what: `a name from ${listPath}`, redact: true })
-    }
-  }
-  return rules
-}
-
-// A file that defines or tests these shapes has to contain them. It says so in a line of
-// its own, which is visible in review in a way an allow-list of paths elsewhere is not —
-// and the exemption is for the shapes only. A name from the external list is forbidden
-// everywhere, marker or no marker: that is the rule nobody may opt out of.
-const ALLOW_SHAPES = '// trimhook:allow-private-shapes'
-
-function checkPrivateStrings(fail, env = process.env) {
+async function checkPrivateStrings(fail, env = process.env) {
+  const { ALLOW_SHAPES, privateStringRules } = await import('./lib/private.mjs')
   const rules = privateStringRules(env)
+  // A list that was asked for and is not there checks no names at all, and would do it
+  // in silence — the failure this release spent its day removing.
+  if (env.TRIMHOOK_PRIVATE_NAMES && !rules.some((r) => r.redact)) {
+    fail(`TRIMHOOK_PRIVATE_NAMES is set to ${env.TRIMHOOK_PRIVATE_NAMES}, which is missing, empty or all comments — no names are being checked, only shapes`)
+  }
   for (const file of textFiles(ROOT)) {
     const rel = relative(ROOT, file)
     let text
@@ -275,7 +229,7 @@ async function check() {
   if (existsSync(join(ROOT, 'site', 'build.mjs')) && read('site/build.mjs').includes('social-preview.png') && !existsSync(join(ROOT, 'assets', 'social-preview.png'))) {
     fail('site/build.mjs names assets/social-preview.png, which does not exist — run npm run build:social')
   }
-  checkPrivateStrings(fail)
+  await checkPrivateStrings(fail)
   // The defaults must be deliverable: a tool trimhook ships ready to cut and the harness
   // never hands it is a silence nobody can debug (TH-36). `doctor` says the same thing
   // about a user's own config; this says it about what the repository ships.

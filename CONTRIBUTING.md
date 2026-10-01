@@ -88,7 +88,9 @@ TRIMHOOK_PRIVATE_NAMES=~/.trimhook-private-names npm test
 
 Export it from your shell profile and every `check` in this checkout reads it. A finding
 names the file and the kind — never the match, because the error is printed, logged by CI
-and pasted into issues.
+and pasted into issues. Pointing the variable at a file that is missing, empty or all
+comments is itself a failure: a guard that checks no names and says nothing is the thing
+this release went looking for.
 
 A file that has to quote one of the shapes, because it defines or tests them, carries the
 line `// trimhook:allow-private-shapes`. That exemption covers the shapes only: a name
