@@ -298,6 +298,26 @@ Sized on 2026-09-28 against local transcripts, at the default cap of 8,000, wher
 takes place from 9,500 characters (cap plus `minSaving`): 281 results would be cut, and
 the cut would take 2.42 M characters.
 
+- [x] **TH-36 — A tool the matcher never delivers**: `tools` says what trimhook acts on,
+  the matcher in the hooks file says what the harness hands it, and a name in the first
+  and not the second was the quietest failure here — no cut, no log line, nothing to read
+  anywhere. `matcherCovers` in `harness.mjs` reads a matcher the way the documentation
+  says the harness does (a list of exact names, or a pattern tested with `RegExp.test`);
+  `doctor` names any configured tool the matcher will not deliver, and `check` fails when
+  the shipped defaults drift from the matchers in either hooks file.
+  <!-- th: prio=med size=S labels=hook,enhancement ver=main -->
+- [x] **TH-37 — The repository is public and most of it is generated**: an eval run, a
+  committed scorecard, a commit message quoting a sample — each carries whatever the tool
+  read, which here is the author's own transcripts. `check` now refuses a private IPv4
+  address, a key with a vendor's prefix, an email address, and the home directory of
+  whoever runs it (read at runtime: in CI that is the runner's and matches nothing, which
+  is honest — the guard is for the machine holding the material). The names a shape cannot
+  see — a client, a private repository, an internal host — come from
+  `TRIMHOOK_PRIVATE_NAMES`, a file of one substring per line kept **outside** this
+  repository, because a list of them in a public file publishes them. A finding names the
+  file and the kind, never the match. A file that defines or tests the shapes says so in
+  one marked line; that exemption is for the shapes only, never for a name from the list.
+  <!-- th: prio=med size=S labels=project ver=main -->
 - [ ] **TH-28 — What a cut Read costs an Edit**: headroom keeps `Read` out of compression
   because the `Edit` that follows needs the file's exact bytes (`DEFAULT_EXCLUDE_TOOLS` in
   its `config.py`); trimhook cuts `Read` since TH-12. A cut is verbatim, so an `old_string`

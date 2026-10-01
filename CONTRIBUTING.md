@@ -70,6 +70,30 @@ when the PNG is missing, because a card that 404s unfurls blank.
 GitHub's own repository social preview is a separate thing, set by hand under Settings →
 General → Social preview; the same PNG is the one to upload.
 
+## What must not be published
+
+This repository is public, and most of what it publishes is generated: an eval run reads
+the author's own transcripts, a scorecard is committed, a commit message quotes a sample.
+`npm test` runs `check`, which refuses the shapes that have no business here — a private
+IPv4 address, a key with a vendor's prefix, an email address, and the home directory of
+whoever is running it.
+
+Shapes are not enough. A client's name, a private repository, an internal hostname: none
+of those has a shape, and listing them here would publish exactly what the list protects.
+So they live outside the repository, one substring per line, `#` for a comment:
+
+```bash
+TRIMHOOK_PRIVATE_NAMES=~/.trimhook-private-names npm test
+```
+
+Export it from your shell profile and every `check` in this checkout reads it. A finding
+names the file and the kind — never the match, because the error is printed, logged by CI
+and pasted into issues.
+
+A file that has to quote one of the shapes, because it defines or tests them, carries the
+line `// trimhook:allow-private-shapes`. That exemption covers the shapes only: a name
+from the private list is refused everywhere, marked file or not.
+
 ## Backlog, roadmap, issues
 
 `BACKLOG.md` is the single source of truth; `ROADMAP.md` is generated from it and the

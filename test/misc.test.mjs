@@ -1,3 +1,4 @@
+// trimhook:allow-private-shapes — this file quotes the patterns it forbids.
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs'
@@ -6,7 +7,8 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { capFor, DEFAULTS, loadConfig, REPO_CLASS, RULES } from '../bin/lib/config.mjs'
 import { doctor } from '../bin/lib/doctor.mjs'
-import { dataDir, detectHarnessSignal, readResponse, replacementOutput } from '../bin/lib/harness.mjs'
+import { privateStringRules } from '../bin/trimhook.mjs'
+import { dataDir, detectHarnessSignal, matcherCovers, readResponse, replacementOutput } from '../bin/lib/harness.mjs'
 import { recompute, render, renderAt, summarize } from '../bin/lib/report.mjs'
 import { pruneSpill, spill } from '../bin/lib/store.mjs'
 import { env, input, lines, tmp } from './helpers.mjs'
@@ -513,4 +515,53 @@ test('the data dir ignores the harness plugin data dir, which only the hook proc
   assert.equal(dataDir({ PLUGIN_DATA: '/codex/data/trimhook' }), join(homedir(), '.trimhook'))
   assert.equal(dataDir({ TRIMHOOK_DATA: '/tmp/elsewhere' }), '/tmp/elsewhere')
   assert.equal(dataDir({}), join(homedir(), '.trimhook'))
+})
+
+// TH-36: `tools` and the matcher are two gates, and only the second is the harness's.
+// A name in the first that the second does not deliver cuts nothing and logs nothing.
+test('matcherCovers reads a matcher the way the harness does', () => {
+  assert.equal(matcherCovers('Bash|Read|WebFetch', 'Read'), true)
+  assert.equal(matcherCovers('Bash|Read|WebFetch', 'Grep'), false)
+  assert.equal(matcherCovers('Edit, Write', 'Write'), true, 'the comma form is a list too')
+  assert.equal(matcherCovers('Bash', 'BashOutput'), false, 'a list of names is not a prefix match')
+  assert.equal(matcherCovers('Edit.*', 'NotebookEdit'), true, 'a real pattern matches anywhere, as the docs say')
+  assert.equal(matcherCovers('*', 'Anything'), true)
+  assert.equal(matcherCovers('', 'Anything'), true, 'no matcher means every tool')
+  assert.equal(matcherCovers('[', 'Anything'), false, 'a broken pattern delivers nothing, and does not throw')
+})
+
+test('doctor names a configured tool the matcher will never hand it', () => {
+  const d = tmp()
+  writeFileSync(join(d, 'user.json'), JSON.stringify({ tools: ['Bash', 'Grep'] }))
+  const { lines: out } = doctor({ cwd: d, env: env(d), home: d, managedSettingsPath: join(d, 'none.json') })
+  const warned = out.find((l) => l.includes('Grep') && l.startsWith('  warn'))
+  assert.ok(warned, `expected a warning about Grep, got:\n${out.join('\n')}`)
+  assert.match(warned, /never calls the hook/)
+  const e = tmp()
+  const clean = doctor({ cwd: e, env: env(e), home: e, managedSettingsPath: join(e, 'none.json') })
+  assert.ok(!clean.lines.some((l) => l.startsWith('  warn') && l.includes('not matched by')), 'the shipped defaults warn about nothing')
+})
+
+// TH-37: the repository is public and most of what it publishes is generated from the
+// author's own transcripts. The guard knows shapes and this machine's home; the names it
+// cannot know come from a file kept outside the repository.
+test('the private-string rules cover the shapes, this host, and an external list', () => {
+  const hits = (text, env2 = {}, home = '/Users/someone') => privateStringRules(env2, home).filter((r) => r.re.test(text)).map((r) => r.what)
+
+  assert.deepEqual(hits('connect to 10.35.20.2 now'), ['a private IPv4 address'])
+  assert.deepEqual(hits('192.168.1.1'), ['a private IPv4 address'])
+  assert.deepEqual(hits('172.16.0.9'), ['a private IPv4 address'])
+  assert.deepEqual(hits('172.15.0.9'), [], 'outside the private range is a public address, not ours to police')
+  assert.deepEqual(hits('127.0.0.1'), [], 'localhost is not a private host')
+  assert.deepEqual(hits('write to someone@example.com'), ['an email address'])
+  assert.deepEqual(hits('key AKIAIOSFODNN7EXAMPLE here'), ['an AWS access key id'])
+  assert.deepEqual(hits('-----BEGIN OPENSSH PRIVATE KEY-----'), ['a private key'])
+  assert.deepEqual(hits('/Users/someone/projects/x'), ["this machine's home directory"])
+  assert.deepEqual(hits('/Users/someone/projects/x', {}, '/'), [], 'a shallow home would match half the tree')
+
+  const list = join(tmp(), 'names.txt')
+  writeFileSync(list, '# a comment\nacme-corp\n\n')
+  assert.deepEqual(hits('the acme-CORP cluster', { TRIMHOOK_PRIVATE_NAMES: list }), [`a name from ${list}`], 'matched case-insensitively')
+  assert.ok(privateStringRules({ TRIMHOOK_PRIVATE_NAMES: list }, '/Users/someone').find((r) => r.redact), 'a name from the list is never echoed back')
+  assert.deepEqual(hits('nothing to see', { TRIMHOOK_PRIVATE_NAMES: join(tmp(), 'missing.txt') }), [], 'a missing list is not an error')
 })

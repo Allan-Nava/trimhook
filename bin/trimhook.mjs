@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// trimhook:allow-private-shapes — this file quotes the patterns it forbids.
 // trimhook — tool output trimmed at the source, for Claude Code and Codex CLI hooks.
 //
 //   trimhook check            validate the manifests, hooks files and this package
@@ -15,8 +16,9 @@
 //
 // Zero dependencies, Node 18+: a hook starts on every tool call.
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { breakingOutOfPlace } from './lib/changelog.mjs'
 
@@ -68,6 +70,96 @@ async function handler() {
     await logError(input, e)
   }
   process.exit(0)
+}
+
+// TH-37: this repository is public, and most of what it publishes is generated — an
+// eval run, a committed scorecard, a commit message quoting a sample. Each of those
+// carries whatever the tool read, which here is the author's own transcripts.
+//
+// The names worth forbidding — a client, a private repository, an internal host — cannot
+// be listed here: a list of secrets in a public file publishes them. So this guard knows
+// two things that need no list, and takes a third from outside:
+//
+//   shapes    a private IPv4 address, a key with a vendor's prefix, an email address.
+//             Generic, safe to publish, and none of them has a reason to be in this tree.
+//   this host the home directory of whoever runs `check`, read at runtime. On this
+//             machine that catches a pasted path; in CI it is /home/runner and matches
+//             nothing, which is honest — the guard is for the machine with the material.
+//   a list    TRIMHOOK_PRIVATE_NAMES, a file of one forbidden substring per line, kept
+//             outside the repository. Without it the names a shape cannot see get past.
+const SHAPES = [
+  [/(?:\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}|\b192\.168\.\d{1,3}\.\d{1,3}|\b172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b/, 'a private IPv4 address'],
+  [/AKIA[0-9A-Z]{16}/, 'an AWS access key id'],
+  [/gh[posu]_[A-Za-z0-9]{30,}/, 'a GitHub token'],
+  [/sk-[A-Za-z0-9_-]{24,}/, 'an API key'],
+  [/xox[baprs]-[A-Za-z0-9-]{12,}/, 'a Slack token'],
+  [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, 'a private key'],
+  [/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}\b/, 'an email address'],
+]
+const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist'])
+const SKIP_EXT = /\.(?:png|jpg|jpeg|gif|ico|webm|mp4|woff2?|tgz|zip|pdf)$/i
+
+function* textFiles(dir) {
+  for (const name of readdirSync(dir).sort()) {
+    if (SKIP_DIRS.has(name)) continue
+    const p = join(dir, name)
+    const st = statSync(p)
+    if (st.isDirectory()) yield* textFiles(p)
+    else if (!SKIP_EXT.test(name) && st.size < 4 * 1024 * 1024) yield p
+  }
+}
+
+export function privateStringRules(env = process.env, home = homedir()) {
+  const rules = SHAPES.map(([re, what]) => ({ re, what }))
+  // A home of "/" or "/root" would match half the tree; a real one is deeper.
+  if (home && home.split('/').filter(Boolean).length >= 2) {
+    rules.push({ re: new RegExp(home.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), what: "this machine's home directory" })
+  }
+  const listPath = env.TRIMHOOK_PRIVATE_NAMES
+  if (listPath) {
+    let lines = []
+    try {
+      lines = readFileSync(listPath, 'utf8').split('\n')
+    } catch {
+      lines = []
+    }
+    for (const raw of lines) {
+      const word = raw.trim()
+      if (!word || word.startsWith('#')) continue
+      rules.push({ re: new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), what: `a name from ${listPath}`, redact: true })
+    }
+  }
+  return rules
+}
+
+// A file that defines or tests these shapes has to contain them. It says so in a line of
+// its own, which is visible in review in a way an allow-list of paths elsewhere is not —
+// and the exemption is for the shapes only. A name from the external list is forbidden
+// everywhere, marker or no marker: that is the rule nobody may opt out of.
+const ALLOW_SHAPES = '// trimhook:allow-private-shapes'
+
+function checkPrivateStrings(fail, env = process.env) {
+  const rules = privateStringRules(env)
+  for (const file of textFiles(ROOT)) {
+    const rel = relative(ROOT, file)
+    let text
+    try {
+      text = readFileSync(file, 'utf8')
+    } catch {
+      continue
+    }
+    const exempt = text.includes(ALLOW_SHAPES)
+    for (const { re, what, redact } of rules) {
+      if (exempt && !redact) continue
+      const m = text.match(re)
+      if (!m) continue
+      const line = text.slice(0, m.index).split('\n').length
+      // The finding names the file and the kind, never the match — an error message is
+      // printed, logged by CI and pasted into issues.
+      fail(`${rel}:${line} looks like ${what}${redact ? '' : ` (${m[0].length} characters)`} — this repository is public; see the publishing rules`)
+      break
+    }
+  }
 }
 
 function checkHooksFile(path, rootVar, fail) {
@@ -134,7 +226,7 @@ const HARNESS_CAP = [
   [/--settings/, 'what doctor cannot read (--settings)'],
 ]
 
-function check() {
+async function check() {
   const errors = []
   const fail = (m) => errors.push(m)
   const pkg = json('package.json')
@@ -148,8 +240,10 @@ function check() {
   if (!/^(?:git\+)?https:\/\/github\.com\/Allan-Nava\/trimhook(?:\.git)?$/.test(pkg.repository?.url ?? '')) fail('package.json#repository must be the GitHub repo URL, exactly')
   if (pkg.dependencies && Object.keys(pkg.dependencies).length) fail('no runtime dependencies — a hook runs on every tool call')
   for (const f of ['bin', 'hooks', 'codex', '.claude-plugin', '.codex-plugin', 'README.md', 'CHANGELOG.md', 'LICENSE']) if (!pkg.files?.includes(f)) fail(`package.json#files is missing ${f}`)
-  checkHooksFile('hooks/hooks.json', '${CLAUDE_PLUGIN_ROOT}', fail)
-  checkHooksFile('codex/hooks.json', '${PLUGIN_ROOT}', fail)
+  const manifests = [
+    ['hooks/hooks.json', checkHooksFile('hooks/hooks.json', '${CLAUDE_PLUGIN_ROOT}', fail)],
+    ['codex/hooks.json', checkHooksFile('codex/hooks.json', '${PLUGIN_ROOT}', fail)],
+  ]
   for (const f of ['README.md', 'CONTRIBUTING.md', 'CLAUDE.md', 'LICENSE', 'BACKLOG.md', 'ROADMAP.md', 'CHANGELOG.md']) if (!existsSync(join(ROOT, f))) fail(`${f} is missing`)
   if (existsSync(join(ROOT, 'CHANGELOG.md'))) {
     const log = read('CHANGELOG.md')
@@ -181,6 +275,18 @@ function check() {
   if (existsSync(join(ROOT, 'site', 'build.mjs')) && read('site/build.mjs').includes('social-preview.png') && !existsSync(join(ROOT, 'assets', 'social-preview.png'))) {
     fail('site/build.mjs names assets/social-preview.png, which does not exist — run npm run build:social')
   }
+  checkPrivateStrings(fail)
+  // The defaults must be deliverable: a tool trimhook ships ready to cut and the harness
+  // never hands it is a silence nobody can debug (TH-36). `doctor` says the same thing
+  // about a user's own config; this says it about what the repository ships.
+  const { DEFAULTS } = await import('./lib/config.mjs')
+  const { matcherCovers } = await import('./lib/harness.mjs')
+  for (const [file, hooks] of manifests) {
+    const matchers = (hooks.hooks?.PostToolUse ?? []).map((e) => e.matcher)
+    for (const tool of DEFAULTS.tools) {
+      if (!matchers.some((m) => matcherCovers(m, tool))) fail(`${file}: the default tools include ${tool}, which the matcher ${JSON.stringify(matchers.join(' '))} does not deliver`)
+    }
+  }
   // D8: the workflows are the one place a sibling project's name is never meant to be.
   // The docs name hookgate on purpose (it is the model this repo follows); CI text that
   // says HG-n is a copy-paste stray. The npm tarball has no .github, hence the guard.
@@ -205,7 +311,7 @@ function help() {
 
 switch (cmd) {
   case 'check':
-    check()
+    await check()
     break
   case 'post-tool-use':
     await handler()

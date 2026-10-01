@@ -2,10 +2,30 @@
 // configuration.
 import { accessSync, constants, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { loadConfig } from './config.mjs'
-import { dataDir, detectHarnessSignal } from './harness.mjs'
+import { dataDir, detectHarnessSignal, matcherCovers } from './harness.mjs'
 import { readRecords } from './store.mjs'
+
+const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+
+// TH-36: `tools` says what trimhook will act on; the matcher in the hooks file says what
+// the harness hands it. A name in the first and not the second is the quietest failure
+// this plugin has — no cut, no log line, nothing to read anywhere. The two files are
+// registered one per harness, so the one that matters is the one for the harness in
+// front of us.
+export function uncoveredTools(cfg, harness, root = PLUGIN_ROOT) {
+  const file = harness === 'codex' ? join(root, 'codex', 'hooks.json') : join(root, 'hooks', 'hooks.json')
+  let entries
+  try {
+    entries = JSON.parse(readFileSync(file, 'utf8'))?.hooks?.PostToolUse ?? []
+  } catch {
+    return null // not installed from a checkout: nothing to compare against, say nothing
+  }
+  const matchers = entries.map((e) => e.matcher)
+  return { file, tools: cfg.tools.filter((t) => !matchers.some((m) => matcherCovers(m, t))) }
+}
 
 // D8: Claude Code's own inline limit for Bash. bashOutputMaxChars, set in any of four
 // settings files, wins over BASH_MAX_OUTPUT_LENGTH, the highest level first, clamped to
@@ -54,6 +74,12 @@ export function doctor({ cwd = process.cwd(), env = process.env, home = homedir(
   for (const p of problems) bad(`config: ${p}`)
   ok(`mode ${cfg.mode} · cap ${cfg.cap} · head ${cfg.head} · minSaving ${cfg.minSaving} · spill ${cfg.spill} (${cfg.spillTtlDays} days) · codex.replace ${cfg.codex.replace} · codex.mode ${cfg.codex.mode}${cfg.holdout ? ` · holdout ${cfg.holdout} (TH-31: that share of cuttable results is left whole)` : ''}`)
   ok(`tools ${cfg.tools.join(', ')}`)
+  const cover = uncoveredTools(cfg, harness)
+  if (cover?.tools.length) {
+    warn(
+      `tools ${cover.tools.join(', ')} ${cover.tools.length > 1 ? 'are' : 'is'} configured but not matched by ${cover.file}: the harness never calls the hook for ${cover.tools.length > 1 ? 'them' : 'it'}, so nothing is cut and nothing is logged — add ${cover.tools.length > 1 ? 'them' : 'it'} to the matcher, or drop ${cover.tools.length > 1 ? 'them' : 'it'} from tools`,
+    )
+  }
   ok(`collapse ${cfg.collapse.enabled ? `on, ${cfg.collapse.strict ? 'strict' : 'masked'}, runs of ${cfg.collapse.minRun}+` : 'off'}`)
   if (Object.keys(cfg.perCommand).length) ok(`per-command caps: ${Object.entries(cfg.perCommand).map(([c, n]) => `${c}=${n}`).join(', ')}`)
   // The harness has its own cut; trimhook can only see what survives it. The setting,

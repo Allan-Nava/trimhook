@@ -29,6 +29,27 @@ export const detectHarness = (env, input) => detectHarnessSignal(env, input).har
 // Measured 2026-09-24: the hook wrote to ~/.claude/plugins/data/trimhook-inline while
 // `report` read ~/.trimhook and said "no results logged yet". The spill paths in the
 // marker are absolute either way, so the model never depended on this.
+// Does the matcher in a hooks file deliver this tool to the hook at all? The harness
+// decides that before trimhook runs, so a tool in `tools` that the matcher does not name
+// is not a quiet no-op to the person who configured it — it is silence (TH-36).
+//
+// Two forms, both from the hooks documentation (code.claude.com, read 2026-09-24):
+// a list of exact names — `Bash`, `Edit|Write`, `Edit, Write` — or a regular expression,
+// tested with `RegExp.prototype.test`, which matches anywhere in the name.
+export function matcherCovers(matcher, tool) {
+  const m = String(matcher ?? '').trim()
+  if (!m || m === '*') return true
+  const parts = m.split(/[|,]/).map((s) => s.trim()).filter(Boolean)
+  // Plain names only: treat it as the list it looks like, so `Bash` does not match
+  // `BashOutput` the way a bare regular expression would.
+  if (parts.every((x) => /^[A-Za-z_][\w-]*$/.test(x))) return parts.includes(tool)
+  try {
+    return new RegExp(m).test(tool)
+  } catch {
+    return false
+  }
+}
+
 export function dataDir(env = process.env) {
   return env.TRIMHOOK_DATA ?? join(homedir(), '.trimhook')
 }

@@ -4,7 +4,7 @@
 
 > This page is **generated** from [BACKLOG.md](BACKLOG.md), the single source of truth for planned work. Regenerate it with `node scripts/backlog.mjs roadmap` after editing the backlog — CI fails when the two disagree.
 
-**35 items · 32 shipped · 3 open · 4 milestones.**
+**37 items · 34 shipped · 3 open · 4 milestones.**
 
 ## At a glance
 
@@ -13,7 +13,7 @@
 | **v0.1.0 — One cut, one number** | now | `#########.` 91% | 1 | 10 |
 | **v0.2.0 — Beyond Bash** | next | `#########.` 92% | 1 | 11 |
 | **v0.3.0 — Less of the same** | later | `##########` 100% | 0 | 6 |
-| **v0.4.0 — What headroom measured** | later | `########..` 83% | 1 | 5 |
+| **v0.4.0 — What headroom measured** | later | `#########.` 88% | 1 | 7 |
 
 ## v0.1.0 — One cut, one number
 
@@ -55,6 +55,8 @@
 
 ## v0.4.0 — What headroom measured
 
+- [x] **TH-36** — A tool the matcher never delivers · med · S · hook, enhancement · `main`
+- [x] **TH-37** — The repository is public and most of it is generated · med · S · project · `main`
 - [ ] **TH-28** — What a cut Read costs an Edit · high · M · benchmark, hook
 - [x] **TH-29** — Instruction files are never cut · med · S · hook · `0.2.0`
 - [x] **TH-30** — The cut is byte-deterministic, and a test says so · med · S · tests · `0.2.0`
