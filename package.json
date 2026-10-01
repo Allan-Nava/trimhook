@@ -27,7 +27,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Allan-Nava/trimhook"
+    "url": "git+https://github.com/Allan-Nava/trimhook.git"
   },
   "homepage": "https://allan-nava.github.io/trimhook/",
   "bugs": "https://github.com/Allan-Nava/trimhook/issues",
