@@ -6,6 +6,8 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 ## [Unreleased]
 
 ### Changed
+- `repository.url` takes the form npm normalises it to (`git+https://….git`), so `npm
+  publish` no longer rewrites it and warns.
 - The GitHub release notes open with the version's CHANGELOG section, above the install
   lines and the list of pull requests: 0.2.0's breaking change had been missing from
   notes built from pull-request titles alone. `check` now fails when a **Breaking** entry
