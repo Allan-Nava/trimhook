@@ -5,6 +5,18 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
 
 ## [Unreleased]
 
+### Added
+- `trimhook doctor` names a tool that is in `tools` but not in the hooks file's matcher:
+  the harness never calls the hook for it, so nothing was cut and nothing was logged, with
+  no diagnostic anywhere. `check` fails when the shipped defaults drift from either
+  matcher (TH-36).
+- `check` refuses a private IPv4 address, a vendor-prefixed key, an email address and the
+  home directory of whoever runs it. Project-specific names — a client, a private
+  repository, an internal host — come from a file named by `TRIMHOOK_PRIVATE_NAMES`, kept
+  outside this repository; a finding names the file and the kind, never the match. The
+  rules live in `bin/lib/private.mjs`, and a `TRIMHOOK_PRIVATE_NAMES` that is missing or
+  empty fails rather than checking nothing quietly (TH-37).
+
 ### Changed
 - `repository.url` takes the form npm normalises it to (`git+https://….git`), so `npm
   publish` no longer rewrites it and warns.

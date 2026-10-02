@@ -31,7 +31,8 @@ assert.deepEqual(actions, [
 assert.deepEqual(plan(model, existing, ['v0.0.0']), [], 'milestone filter excludes everything else')
 assert.deepEqual(plan(model, existing), actions, 'planning is deterministic')
 
-// Lint catches the things that bit segcheck: duplicate ids, missing meta, ver on an open item.
+// Lint catches the things that bit a sibling project: duplicate ids, missing meta, ver
+// on an open item.
 const bad = parse(`## v1.0.0 — X <!-- ms: phase=now -->\n\n- [ ] **TH-1 — a**: b. <!-- th: prio=high size=S labels=gate ver=1 -->\n- [ ] **TH-1 — c**: d.\n- [x] **TH-2 — e**: f. <!-- th: prio=zzz size=S labels=nope -->\n`)
 const errs = lint(bad)
 for (const needle of ['already used', 'no <!-- th:', 'carries ver=', 'prio must be', 'unknown label', 'shipped but has no ver='])

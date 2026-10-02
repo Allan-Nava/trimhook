@@ -15,8 +15,9 @@
 //
 // Zero dependencies, Node 18+: a hook starts on every tool call.
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { breakingOutOfPlace } from './lib/changelog.mjs'
 
@@ -68,6 +69,51 @@ async function handler() {
     await logError(input, e)
   }
   process.exit(0)
+}
+
+// The walker stays here because it needs this file's ROOT; the rules are pure and live
+// in bin/lib/private.mjs, which is also the one file allowed to quote the shapes.
+const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist'])
+const SKIP_EXT = /\.(?:png|jpg|jpeg|gif|ico|webm|mp4|woff2?|tgz|zip|pdf)$/i
+
+function* textFiles(dir) {
+  for (const name of readdirSync(dir).sort()) {
+    if (SKIP_DIRS.has(name)) continue
+    const p = join(dir, name)
+    const st = statSync(p)
+    if (st.isDirectory()) yield* textFiles(p)
+    else if (!SKIP_EXT.test(name) && st.size < 4 * 1024 * 1024) yield p
+  }
+}
+
+async function checkPrivateStrings(fail, env = process.env) {
+  const { ALLOW_SHAPES, privateStringRules } = await import('./lib/private.mjs')
+  const rules = privateStringRules(env)
+  // A list that was asked for and is not there checks no names at all, and would do it
+  // in silence — the failure this release spent its day removing.
+  if (env.TRIMHOOK_PRIVATE_NAMES && !rules.some((r) => r.redact)) {
+    fail(`TRIMHOOK_PRIVATE_NAMES is set to ${env.TRIMHOOK_PRIVATE_NAMES}, which is missing, empty or all comments — no names are being checked, only shapes`)
+  }
+  for (const file of textFiles(ROOT)) {
+    const rel = relative(ROOT, file)
+    let text
+    try {
+      text = readFileSync(file, 'utf8')
+    } catch {
+      continue
+    }
+    const exempt = text.includes(ALLOW_SHAPES)
+    for (const { re, what, redact } of rules) {
+      if (exempt && !redact) continue
+      const m = text.match(re)
+      if (!m) continue
+      const line = text.slice(0, m.index).split('\n').length
+      // The finding names the file and the kind, never the match — an error message is
+      // printed, logged by CI and pasted into issues.
+      fail(`${rel}:${line} looks like ${what}${redact ? '' : ` (${m[0].length} characters)`} — this repository is public; see the publishing rules`)
+      break
+    }
+  }
 }
 
 function checkHooksFile(path, rootVar, fail) {
@@ -134,7 +180,7 @@ const HARNESS_CAP = [
   [/--settings/, 'what doctor cannot read (--settings)'],
 ]
 
-function check() {
+async function check() {
   const errors = []
   const fail = (m) => errors.push(m)
   const pkg = json('package.json')
@@ -148,8 +194,10 @@ function check() {
   if (!/^(?:git\+)?https:\/\/github\.com\/Allan-Nava\/trimhook(?:\.git)?$/.test(pkg.repository?.url ?? '')) fail('package.json#repository must be the GitHub repo URL, exactly')
   if (pkg.dependencies && Object.keys(pkg.dependencies).length) fail('no runtime dependencies — a hook runs on every tool call')
   for (const f of ['bin', 'hooks', 'codex', '.claude-plugin', '.codex-plugin', 'README.md', 'CHANGELOG.md', 'LICENSE']) if (!pkg.files?.includes(f)) fail(`package.json#files is missing ${f}`)
-  checkHooksFile('hooks/hooks.json', '${CLAUDE_PLUGIN_ROOT}', fail)
-  checkHooksFile('codex/hooks.json', '${PLUGIN_ROOT}', fail)
+  const manifests = [
+    ['hooks/hooks.json', checkHooksFile('hooks/hooks.json', '${CLAUDE_PLUGIN_ROOT}', fail)],
+    ['codex/hooks.json', checkHooksFile('codex/hooks.json', '${PLUGIN_ROOT}', fail)],
+  ]
   for (const f of ['README.md', 'CONTRIBUTING.md', 'CLAUDE.md', 'LICENSE', 'BACKLOG.md', 'ROADMAP.md', 'CHANGELOG.md']) if (!existsSync(join(ROOT, f))) fail(`${f} is missing`)
   if (existsSync(join(ROOT, 'CHANGELOG.md'))) {
     const log = read('CHANGELOG.md')
@@ -181,6 +229,18 @@ function check() {
   if (existsSync(join(ROOT, 'site', 'build.mjs')) && read('site/build.mjs').includes('social-preview.png') && !existsSync(join(ROOT, 'assets', 'social-preview.png'))) {
     fail('site/build.mjs names assets/social-preview.png, which does not exist — run npm run build:social')
   }
+  await checkPrivateStrings(fail)
+  // The defaults must be deliverable: a tool trimhook ships ready to cut and the harness
+  // never hands it is a silence nobody can debug (TH-36). `doctor` says the same thing
+  // about a user's own config; this says it about what the repository ships.
+  const { DEFAULTS } = await import('./lib/config.mjs')
+  const { matcherCovers } = await import('./lib/harness.mjs')
+  for (const [file, hooks] of manifests) {
+    const matchers = (hooks.hooks?.PostToolUse ?? []).map((e) => e.matcher)
+    for (const tool of DEFAULTS.tools) {
+      if (!matchers.some((m) => matcherCovers(m, tool))) fail(`${file}: the default tools include ${tool}, which the matcher ${JSON.stringify(matchers.join(' '))} does not deliver`)
+    }
+  }
   // D8: the workflows are the one place a sibling project's name is never meant to be.
   // The docs name hookgate on purpose (it is the model this repo follows); CI text that
   // says HG-n is a copy-paste stray. The npm tarball has no .github, hence the guard.
@@ -205,7 +265,7 @@ function help() {
 
 switch (cmd) {
   case 'check':
-    check()
+    await check()
     break
   case 'post-tool-use':
     await handler()
