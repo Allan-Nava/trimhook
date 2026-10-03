@@ -5,7 +5,7 @@ the CHANGELOG, the `thoughts/` artifacts and the issues can reference them. New 
 here rather than into scattered TODO comments.
 
 [ROADMAP.md](ROADMAP.md) is a **generated** view of this file, grouped by milestone. Do
-not edit it by hand — run `node scripts/backlog.mjs roadmap` after touching this file,
+not edit it by hand — run `npm run roadmap` (backlogsync) after touching this file,
 or CI fails. The GitHub issues are another generated view, synced one way on every push
 to `main` that changes this file.
 
@@ -318,6 +318,13 @@ the cut would take 2.42 M characters.
   file and the kind, never the match. A file that defines or tests the shapes says so in
   one marked line; that exemption is for the shapes only, never for a name from the list.
   <!-- th: prio=med size=S labels=project ver=main -->
+- [x] **TH-38 — The backlog tooling is backlogsync's**: `scripts/backlog.mjs` was one of
+  several diverged copies of the same script, and `release-drift.yml` one of several
+  copies of the same check. Replace them, the script's test and fixtures with backlogsync
+  0.1.1 — the CI `backlog` job and `backlog-issues.yml` through its action,
+  `release-drift.yml` through its reusable workflow, `npm run backlog` / `npm run roadmap`
+  through `npx backlogsync@0.1.1` — keeping the label set. Done 2026-10-03 (backlogsync
+  BS-12). <!-- th: prio=med size=S labels=project ver=main -->
 - [ ] **TH-28 — What a cut Read costs an Edit**: headroom keeps `Read` out of compression
   because the `Edit` that follows needs the file's exact bytes (`DEFAULT_EXCLUDE_TOOLS` in
   its `config.py`); trimhook cuts `Read` since TH-12. A cut is verbatim, so an `old_string`

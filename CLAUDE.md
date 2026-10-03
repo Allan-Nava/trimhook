@@ -44,8 +44,7 @@ site/build.mjs         generates site/dist/index.html FROM README.md; adds only 
                        inventory read off hooks/hooks.json
 assets/                logo.svg (single source for favicon, site, README), logo-mono.svg
 BACKLOG.md             single source of truth: stable TH-n ids, `<!-- th: ... -->` metadata
-ROADMAP.md             GENERATED from BACKLOG.md — never edit
-scripts/backlog.mjs    lint · roadmap · check · stats · issues [--apply]
+ROADMAP.md             GENERATED from BACKLOG.md by `npm run roadmap` (backlogsync) — never edit
 scripts/release-notes.mjs  the CHANGELOG section for a version — the top of its release notes (TH-35)
 CHANGELOG.md           Keep a Changelog with TH-n ids; `check` wants [Unreleased] and the version
 CONTRIBUTING.md        local loop, benchmark protocol, release runbook

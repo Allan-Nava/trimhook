@@ -18,6 +18,10 @@ versions follow [SemVer](https://semver.org/). Items reference their `TH-n` back
   empty fails rather than checking nothing quietly (TH-37).
 
 ### Changed
+- The backlog check, the roadmap, the issue sync and the release-drift check are
+  [backlogsync](https://github.com/Allan-Nava/backlogsync) 0.1.1, configured in
+  `package.json#backlogsync`; `scripts/backlog.mjs`, its test and fixtures are gone, and
+  `npm run roadmap` regenerates `ROADMAP.md` (TH-38).
 - `repository.url` takes the form npm normalises it to (`git+https://….git`), so `npm
   publish` no longer rewrites it and warns.
 - The GitHub release notes open with the version's CHANGELOG section, above the install

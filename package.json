@@ -21,9 +21,45 @@
   },
   "scripts": {
     "test": "node bin/trimhook.mjs check && node --test",
-    "backlog": "node scripts/backlog.mjs lint && node scripts/backlog.mjs check",
+    "backlog": "npx --yes backlogsync@0.1.1 check",
     "build:site": "node site/build.mjs",
-    "build:social": "node scripts/social.mjs"
+    "build:social": "node scripts/social.mjs",
+    "roadmap": "npx --yes backlogsync@0.1.1 roadmap"
+  },
+  "backlogsync": {
+    "prefix": "TH",
+    "name": "trimhook",
+    "regenerate": "npm run roadmap",
+    "labels": {
+      "hook": [
+        "b7552f",
+        "The hook itself: trimming, spill, harness shapes"
+      ],
+      "benchmark": [
+        "0e8a16",
+        "Measurement and evals"
+      ],
+      "release": [
+        "5319e7",
+        "Publishing and versioning"
+      ],
+      "docs": [
+        "0075ca",
+        "README, CONTRIBUTING, site"
+      ],
+      "project": [
+        "6a737d",
+        "Backlog, roadmap, repo hygiene"
+      ],
+      "tests": [
+        "d4c5f9",
+        "Test coverage and test tooling"
+      ],
+      "enhancement": [
+        "a2eeef",
+        "New capability"
+      ]
+    }
   },
   "repository": {
     "type": "git",
